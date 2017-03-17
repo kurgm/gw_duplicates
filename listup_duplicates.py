@@ -123,7 +123,7 @@ class Glyph(object):
                                         for y in points[1::2]]
                     points[0::2] = [buhinx0 + x * scale_x
                                     for x in points[0::2]]
-                    points[1::2] = [buhiny0 + x * scale_y
+                    points[1::2] = [buhiny0 + y * scale_y
                                     for y in points[1::2]]
                     k.append(b_kaku[0:2] + tuple(points))
                 continue
