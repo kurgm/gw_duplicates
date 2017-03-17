@@ -39,43 +39,40 @@ class Glyph(object):
     def getBuhin(self, dbn):
         if self.buhin is not None:
             return self.buhin
-        b = []
-        tb = ()
+        buhin = []
         for row in self.data:
             if row[0:2] == "0:":
                 continue
             if row[0:2] != "99":
                 break
-            r = row.split(":")
-            bn = r[7].split("@")[0]
-            g = dbn.get(bn)
-            if not g or self is g or g in buhin_stack:
-                b = []
+            splitrow = row.split(":")
+            buhinname = splitrow[7].split("@")[0]
+            buhinglyph = dbn.get(buhinname)
+            if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
+                buhin = []
                 logging.error(
-                    "'{}' was not found or has a quotation loop".format(bn))
+                    "'{}' was not found or has a quotation loop".format(buhinname))
                 break
-            buhin_stack.append(g)
-            area = [float(x) for x in r[3:7]]
-            bbs = g.getBuhin(dbn)
+            buhin_stack.append(buhinglyph)
+            b_buhins = buhinglyph.getBuhin(dbn)
             buhin_stack.pop()
-            if bbs:
-                scale = [(area[2] - area[0]) / 200.0,
-                         (area[3] - area[1]) / 200.0]
-                for bb in bbs:
-                    b.append((
-                        area[0] + bb[0] * scale[0],
-                        area[1] + bb[1] * scale[1],
-                        area[0] + bb[2] * scale[0],
-                        area[1] + bb[3] * scale[1],
-                        bb[4]
+            buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in splitrow[3:7]]
+            if b_buhins:
+                scale_x = (buhinx1 - buhinx0) / 200.0
+                scale_y = (buhiny1 - buhiny0) / 200.0
+                for b_buhinx0, b_buhiny0, b_buhinx1, b_buhiny1, b_buhinname in b_buhins:
+                    buhin.append((
+                        buhinx0 + b_buhinx0 * scale_x,
+                        buhiny0 + b_buhiny0 * scale_y,
+                        buhinx0 + b_buhinx1 * scale_x,
+                        buhiny0 + b_buhiny1 * scale_y,
+                        b_buhinname
                     ))
             else:
-                b.append(tuple(area + [bn]))
-        else:
-            b.sort(key=lambda x: x[4])
-            tb = tuple(b)
-        self.buhin = tb
-        return tb
+                buhin.append((buhinx0, buhiny0, buhinx1, buhiny1, buhinname))
+        buhin.sort(key=lambda x: x[4])
+        self.buhin = tuple(buhin)
+        return self.buhin
 
     def getBuhinHash(self, dbn):
         if len(self.data) == 1 and self.data[0][0:19] == "99:0:0:0:0:200:200:":
