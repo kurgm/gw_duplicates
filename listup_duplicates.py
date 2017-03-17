@@ -36,7 +36,7 @@ class Glyph(object):
         self.buhin = None
         self.kaku = None
 
-    def getBuhin(self, dbn):
+    def getBuhin(self, dump):
         if self.buhin is not None:
             return self.buhin
         buhin = []
@@ -47,14 +47,14 @@ class Glyph(object):
                 break
             splitrow = row.split(":")
             buhinname = splitrow[7].split("@")[0]
-            buhinglyph = dbn.get(buhinname)
+            buhinglyph = dump.get(buhinname)
             if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
                 buhin = []
                 logging.error(
                     "'{}' was not found or has a quotation loop".format(buhinname))
                 break
             buhin_stack.append(buhinglyph)
-            b_buhins = buhinglyph.getBuhin(dbn)
+            b_buhins = buhinglyph.getBuhin(dump)
             buhin_stack.pop()
             buhinx0, buhiny0, buhinx1, buhiny1 = [
                 float(x) for x in splitrow[3:7]]
@@ -75,14 +75,14 @@ class Glyph(object):
         self.buhin = tuple(buhin)
         return self.buhin
 
-    def getBuhinHash(self, dbn):
+    def getBuhinHash(self, dump):
         if len(self.data) == 1 and self.data[0][0:19] == "99:0:0:0:0:200:200:":
             return ()
         if "_" in self.name:
             return ()
-        return tuple(b[4] for b in self.getBuhin(dbn))
+        return tuple(b[4] for b in self.getBuhin(dump))
 
-    def getKaku(self, dbn):
+    def getKaku(self, dump):
         if self.kaku is not None:
             return self.kaku
         k = []
@@ -91,14 +91,14 @@ class Glyph(object):
             strokeType = r[0]
             if strokeType == "99":
                 buhinname = r[7].split("@")[0]
-                buhinglyph = dbn.get(buhinname)
+                buhinglyph = dump.get(buhinname)
                 if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
                     k = []
                     logging.error(
                         "'{}' was not found or has a quotation loop".format(buhinname))
                     break
                 buhin_stack.append(buhinglyph)
-                b_kakus = buhinglyph.getKaku(dbn)
+                b_kakus = buhinglyph.getKaku(dump)
                 buhin_stack.pop()
                 buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in r[3:7]]
                 dpx = float(r[1])
@@ -207,19 +207,19 @@ class Glyph(object):
         self.kaku = tuple(k)
         return self.kaku
 
-    def getKakuHash(self, dbn):
+    def getKakuHash(self, dump):
         if len(self.data) == 1 and self.data[0][0:19] == "99:0:0:0:0:200:200:":
             return ()
         if "_" in self.name:
             return ()
-        return tuple(k[0:2] for k in self.getKaku(dbn))
+        return tuple(k[0:2] for k in self.getKaku(dump))
 
     xorMaskType = 0
 
 
 def getDump():
-    db = []
-    dbn = {}
+    namelist = []
+    dump = {}
     DUMP_PATH = "dump_newest_only.txt"
     with open(DUMP_PATH, "r") as dumpfile:
         dumpfile.readline()  # header
@@ -232,12 +232,12 @@ def getDump():
                 continue
             l = [x.strip() for x in l]
             glyph = Glyph(*l)
-            db.append(glyph)
-            dbn[l[0]] = glyph
-    return db, dbn, timestamp
+            namelist.append(glyph)
+            dump[l[0]] = glyph
+    return namelist, dump, timestamp
 
 
-def setXorMaskType(dbn):
+def setXorMaskType(dump):
     neg_url = "http://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
     neg_data = urllib2.urlopen(neg_url, timeout=60).read()
 
@@ -246,25 +246,25 @@ def setXorMaskType(dbn):
     for m in re.finditer(r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M):
         gn = m.group(1)
         if gn:
-            if gn in dbn:
-                dbn[gn].xorMaskType = neg_masktype
+            if gn in dump:
+                dump[gn].xorMaskType = neg_masktype
         else:
             neg_masktype += 1
 
 
 def main():
-    db, dbn, timestamp = getDump()
-    setXorMaskType(dbn)
+    namelist, dump, timestamp = getDump()
+    setXorMaskType(dump)
 
     buhin = {}
     kaku = {}
 
-    for glyph in db:
+    for glyph in namelist:
         try:
-            bh = glyph.getBuhinHash(dbn)
+            bh = glyph.getBuhinHash(dump)
             if bh:
                 buhin.setdefault(bh, []).append(glyph)
-            kh = glyph.getKakuHash(dbn)
+            kh = glyph.getKakuHash(dump)
             if kh:
                 kaku.setdefault(kh, []).append(glyph)
         except Exception:
@@ -276,8 +276,8 @@ def main():
         for g1, g2 in itertools.combinations(buhin[b], 2):
             if g1.xorMaskType != g2.xorMaskType:
                 continue
-            b1 = g1.getBuhin(dbn)
-            b2 = g2.getBuhin(dbn)
+            b1 = g1.getBuhin(dump)
+            b2 = g2.getBuhin(dump)
             for (B1, B2) in zip(b1, b2):
                 if cmp(B1[0], B1[2]) != cmp(B2[0], B2[2]):
                     break
@@ -313,8 +313,8 @@ def main():
         for g1, g2 in itertools.combinations(kaku[k], 2):
             if g1.xorMaskType != g2.xorMaskType:
                 continue
-            k1 = g1.getKaku(dbn)
-            k2 = g2.getKaku(dbn)
+            k1 = g1.getKaku(dump)
+            k2 = g2.getKaku(dump)
             for (K1, K2) in zip(k1, k2):
                 if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(K1[2:4] + K1[-2:], K2[2:4] + K2[-2:])):
                     continue
