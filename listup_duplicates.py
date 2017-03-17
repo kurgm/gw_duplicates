@@ -192,9 +192,11 @@ class Glyph(object):
                 ))
             elif strokeType == "3" or strokeType == "4":
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
+                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
+                dir2 = cmp(x1, x2) * 2 + cmp(y1, y2) + 3
                 k.append((
                     3,
-                    (sttType, endType),
+                    (dir1, dir2, sttType, endType),
                     x0, y0, x1, y1, x2, y2
                 ))
         k.sort()
