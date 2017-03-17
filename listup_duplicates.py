@@ -146,9 +146,8 @@ class Glyph(object):
                 ))
             elif strokeType == "2":
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
-                if sttType == 32 and endType == 0:
-                    if (y0 == y2 and x0 < x2) or y0 > y2:
-                        x0, y0, x2, y2 = x2, y2, x0, y0
+                if sttType == 32 and endType == 0 and ((y0 == y2 and x0 < x2) or y0 > y2):
+                    x0, y0, x2, y2 = x2, y2, x0, y0
                 if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y2) > x2 - x0 and \
                    abs(x0 + (x2 - x0) * (y1 - y0) / (y2 - y0) - x1
                        if abs(y0 - y2) > abs(x0 - x2) else
@@ -157,7 +156,7 @@ class Glyph(object):
                     dir1 = cmp(x0, x2) * 2 + cmp(y0, y2) + 3
                     k.append((
                         1,
-                        int(dir1 + 7 * (sttType // 10) + 84),
+                        dir1 + 7 * (sttType // 10) + 84,
                         x0, y0, x2, y2
                     ))
                     continue
@@ -171,20 +170,15 @@ class Glyph(object):
                 ))
             elif strokeType == "6" or strokeType == "7":
                 x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in r[3:11]]
-                if sttType == 32 and endType == 0:
-                    if (y0 == y3 and x0 < x3) or y0 > y3:
-                        x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
+                if sttType == 32 and endType == 0 and ((y0 == y3 and x0 < x3) or y0 > y3):
+                    x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
                 if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y3) > x3 - x0 and max(
                         (
-                            abs(x0 + (x3 - x0) *
-                                (y1 - y0) / (y3 - y0) - x1),
-                            abs(x0 + (x3 - x0) *
-                                (y2 - y0) / (y3 - y0) - x2)
+                            abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
+                            abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
                         ) if abs(y0 - y3) > abs(x0 - x3) else (
-                            abs(y0 + (y3 - y0) *
-                                (x1 - x0) / (x3 - x0) - y1),
-                            abs(y0 + (y3 - y0) *
-                                (x2 - x0) / (x3 - x0) - y2)
+                            abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
+                            abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
                         )
                 ) <= 5.0:
                     dir1 = cmp(x0, x3) * 2 + cmp(y0, y3) + 3
