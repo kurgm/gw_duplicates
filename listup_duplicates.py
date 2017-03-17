@@ -193,14 +193,13 @@ class Glyph(object):
         if "_" in self.name:
             return ()
         return tuple(k[0:2] for k in self.getKaku(dbn))
+
     xorMaskType = 0
 
 
-def main():
-
+def getDump():
     db = []
     dbn = {}
-
     DUMP_PATH = "dump_newest_only.txt"
     with open(DUMP_PATH, "r") as dumpfile:
         dumpfile.readline()  # header
@@ -215,7 +214,10 @@ def main():
             glyph = Glyph(*l)
             db.append(glyph)
             dbn[l[0]] = glyph
+    return db, dbn, timestamp
 
+
+def setXorMaskType(dbn):
     neg_url = "http://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
     neg_data = urllib2.urlopen(neg_url, timeout=60).read()
 
@@ -227,6 +229,11 @@ def main():
             dbn[gn].xorMaskType = neg_masktype
         else:
             neg_masktype += 1
+
+
+def main():
+    db, dbn, timestamp = getDump()
+    setXorMaskType(dbn)
 
     buhin = {}
     kaku = {}
