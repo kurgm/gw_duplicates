@@ -56,7 +56,8 @@ class Glyph(object):
             buhin_stack.append(buhinglyph)
             b_buhins = buhinglyph.getBuhin(dbn)
             buhin_stack.pop()
-            buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in splitrow[3:7]]
+            buhinx0, buhiny0, buhinx1, buhiny1 = [
+                float(x) for x in splitrow[3:7]]
             if b_buhins:
                 scale_x = (buhinx1 - buhinx0) / 200.0
                 scale_y = (buhiny1 - buhiny0) / 200.0
@@ -89,98 +90,125 @@ class Glyph(object):
             r = row.split(":")
             strokeType = r[0]
             if strokeType == "99":
-                bn = r[7].split("@")[0]
-                g = dbn.get(bn)
-                if not g or self is g or g in buhin_stack:
+                buhinname = r[7].split("@")[0]
+                buhinglyph = dbn.get(buhinname)
+                if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
                     k = []
                     logging.error(
-                        "'{}' was not found or has a quotation loop".format(bn))
+                        "'{}' was not found or has a quotation loop".format(buhinname))
                     break
-                buhin_stack.append(g)
-                bk = g.getKaku(dbn)
+                buhin_stack.append(buhinglyph)
+                b_kakus = buhinglyph.getKaku(dbn)
                 buhin_stack.pop()
-                area = [float(x) for x in r[3:7]]
-                params = [float(x) for x in r[1:3] + r[9:11]]
-                if len(params) < 4:
-                    params = (params + [0.0, 0.0])[0:4]
+                buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in r[3:7]]
+                dpx = float(r[1])
+                dpy = float(r[2])
+                if len(r) < 9:
+                    spx = spy = 0.0
+                else:
+                    spx = float(r[9])
+                    spy = float(r[10])
                 isStretched = False
-                if params[0:2] != [0.0, 0.0]:
+                if not (dpx == dpy == 0.0):
                     isStretched = True
-                    if params[0] > 100.0:
-                        params[0] -= 200.0  # 任意点モード
+                    if dpx > 100.0:
+                        dpx -= 200.0  # 任意点モード
                     else:
-                        params[2:4] = [0.0, 0.0]  # 中心点モード
-                scale = [(area[2] - area[0]) / 200.0,
-                         (area[3] - area[1]) / 200.0]
-                for bkaku in bk:
-                    points = list(bkaku[2:])
-                    l = len(points)
+                        spx = spy = 0.0  # 中心点モード
+                scale_x = (buhinx1 - buhinx0) / 200.0
+                scale_y = (buhiny1 - buhiny0) / 200.0
+                for b_kaku in b_kakus:
+                    points = list(b_kaku[2:])
                     if isStretched:
-                        for i in range(0, l, 2):
-                            points[i] = stretch(
-                                params[0], params[2], points[i])
-                            points[
-                                i + 1] = stretch(params[1], params[3], points[i + 1])
-                    for i in range(0, l, 2):
-                        points[i] = area[0] + points[i] * scale[0]
-                        points[i + 1] = area[1] + points[i + 1] * scale[1]
-                    k.append(bkaku[0:2] + tuple(points))
-            elif strokeType == "1":
-                r = [float(x) for x in r]
-                if (r[1] == r[2] == 32.0 and r[4] > r[6] and r[4] - r[6] > r[5] - r[3]) or (r[4] == r[6] and r[3] > r[5]):
-                    r[3:7] = r[5:7] + r[3:5]
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                k.append((1, int(dir1 + 7 * (r[1] // 10) + 28 * (r[2] * 2 if 0.0 < r[
-                         2] < 10.0 else r[2] // 10)), r[3], r[4], r[5], r[6]))
+                        points[0::2] = [stretch(dpx, spx, x)
+                                        for x in points[0::2]]
+                        points[1::2] = [stretch(dpy, spy, x)
+                                        for y in points[1::2]]
+                    points[0::2] = [buhinx0 + x * scale_x
+                                    for x in points[0::2]]
+                    points[1::2] = [buhiny0 + x * scale_y
+                                    for y in points[1::2]]
+                    k.append(b_kaku[0:2] + tuple(points))
+                continue
+            sttType = int(r[1])
+            endType = int(r[2])
+            if strokeType == "1":
+                x0, y0, x1, y1 = [float(x) for x in r[3:7]]
+                if (sttType == endType == 32 and y0 > y1 and y0 - y1 > x1 - x0) or \
+                        (y0 == y1 and x0 > x1):
+                    x0, y0, x1, y1 = x1, y1, x0, y0
+                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
+                k.append((
+                    1,
+                    dir1 + 7 * (sttType // 10) +
+                    28 * (endType * 2 if 0 < endType < 10 else endType // 10),
+                    x0, y0, x1, y1
+                ))
             elif strokeType == "2":
-                r = [float(x) for x in r]
-                if r[1] == 32.0 and r[2] == 0.0:
-                    if (r[4] == r[8] and r[3] < r[7]) or r[4] > r[8]:
-                        r[3:9] = r[7:9] + r[5:7] + r[3:5]
-                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[8]) > r[7] - r[3] and \
-                   abs(r[3] + (r[7] - r[3]) * (r[6] - r[4]) / (r[8] - r[4]) - r[5]
-                       if abs(r[4] - r[8]) > abs(r[3] - r[7]) else
-                       r[4] + (r[8] - r[4]) * (r[5] - r[3]) /
-                       (r[7] - r[3]) - r[6]
+                x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
+                if sttType == 32 and endType == 0:
+                    if (y0 == y2 and x0 < x2) or y0 > y2:
+                        x0, y0, x2, y2 = x2, y2, x0, y0
+                if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y2) > x2 - x0 and \
+                   abs(x0 + (x2 - x0) * (y1 - y0) / (y2 - y0) - x1
+                       if abs(y0 - y2) > abs(x0 - x2) else
+                       y0 + (y2 - y0) * (x1 - x0) / (x2 - x0) - y1
                        ) <= 5.0:
-                    dir1 = cmp(r[3], r[7]) * 2 + cmp(r[4], r[8]) + 3
-                    k.append(
-                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[7], r[8]))
+                    dir1 = cmp(x0, x2) * 2 + cmp(y0, y2) + 3
+                    k.append((
+                        1,
+                        int(dir1 + 7 * (sttType // 10) + 84),
+                        x0, y0, x2, y2
+                    ))
                     continue
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                dir2 = cmp(r[5], r[7]) * 2 + cmp(r[6], r[8]) + 3
-                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (
-                    r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
+                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
+                dir2 = cmp(x1, x2) * 2 + cmp(y1, y2) + 3
+                k.append((
+                    2,
+                    dir1 + 7 * dir2 + 49 *
+                        (sttType // 5) + 392 * (endType // 5),
+                    x0, y0, x1, y1, x2, y2
+                ))
             elif strokeType == "6" or strokeType == "7":
-                r = [float(x) for x in r]
-                if r[1] == 32.0 and r[2] == 0.0:
-                    if (r[4] == r[10] and r[3] < r[9]) or r[4] > r[10]:
-                        r[3:11] = r[9:11] + r[7:9] + r[5:7] + r[3:5]
-                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[10]) > r[9] - r[3] and max(
+                x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in r[3:11]]
+                if sttType == 32 and endType == 0:
+                    if (y0 == y3 and x0 < x3) or y0 > y3:
+                        x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
+                if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y3) > x3 - x0 and max(
                         (
-                            abs(r[3] + (r[9] - r[3]) *
-                                (r[6] - r[4]) / (r[10] - r[4]) - r[5]),
-                            abs(r[3] + (r[9] - r[3]) *
-                                (r[8] - r[4]) / (r[10] - r[4]) - r[7])
-                        ) if abs(r[4] - r[10]) > abs(r[3] - r[9]) else (
-                            abs(r[4] + (r[10] - r[4]) *
-                                (r[5] - r[3]) / (r[9] - r[3]) - r[6]),
-                            abs(r[4] + (r[10] - r[4]) *
-                                (r[7] - r[3]) / (r[9] - r[3]) - r[8])
+                            abs(x0 + (x3 - x0) *
+                                (y1 - y0) / (y3 - y0) - x1),
+                            abs(x0 + (x3 - x0) *
+                                (y2 - y0) / (y3 - y0) - x2)
+                        ) if abs(y0 - y3) > abs(x0 - x3) else (
+                            abs(y0 + (y3 - y0) *
+                                (x1 - x0) / (x3 - x0) - y1),
+                            abs(y0 + (y3 - y0) *
+                                (x2 - x0) / (x3 - x0) - y2)
                         )
                 ) <= 5.0:
-                    dir1 = cmp(r[3], r[9]) * 2 + cmp(r[4], r[10]) + 3
-                    k.append(
-                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[9], r[10]))
+                    dir1 = cmp(x0, x3) * 2 + cmp(y0, y3) + 3
+                    k.append((
+                        1,
+                        dir1 + 7 * (sttType // 10) + 84,
+                        x0, y0, x3, y3
+                    ))
                     continue
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                dir2 = cmp(r[7], r[9]) * 2 + cmp(r[8], r[10]) + 3
-                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (r[2] // 5)), r[
-                         3], r[4], r[5], r[6], r[7], r[8], r[9], r[10]))
+                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
+                dir2 = cmp(x2, x3) * 2 + cmp(y2, y3) + 3
+                k.append((
+                    2,
+                    dir1 + 7 * dir2 + 49 *
+                        (sttType // 5) + 392 * (endType // 5),
+                    x0, y0, x1, y1, x2, y2, x3, y3
+                ))
             elif strokeType == "3" or strokeType == "4":
-                r = [float(x) for x in r]
-                k.append(
-                    (3, int((r[1] // 10) + 4 * (r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
+                x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
+                k.append((
+                    3,
+                    (sttType // 10) + 4 * (endType // 5),
+                    x0, y0, x1, y1, x2, y2
+                ))
         k.sort()
         self.kaku = tuple(k)
         return self.kaku
