@@ -76,10 +76,6 @@ class Glyph(object):
         return self.buhin
 
     def getBuhinHash(self, dump):
-        if len(self.data) == 1 and self.data[0][0:19] == "99:0:0:0:0:200:200:":
-            return ()
-        if "_" in self.name:
-            return ()
         return tuple(b[4] for b in self.getBuhin(dump))
 
     def getKaku(self, dump):
@@ -208,17 +204,16 @@ class Glyph(object):
         return self.kaku
 
     def getKakuHash(self, dump):
-        if len(self.data) == 1 and self.data[0][0:19] == "99:0:0:0:0:200:200:":
-            return ()
-        if "_" in self.name:
-            return ()
         return tuple(k[0:2] for k in self.getKaku(dump))
+
+    def isAlias(self):
+        return len(self.data) == 1 and self.data[0][:19] == "99:0:0:0:0:200:200:"
 
     xorMaskType = 0
 
 
 def getDump():
-    namelist = []
+    glyphlist = []
     dump = {}
     DUMP_PATH = "dump_newest_only.txt"
     with open(DUMP_PATH, "r") as dumpfile:
@@ -232,9 +227,9 @@ def getDump():
                 continue
             l = [x.strip() for x in l]
             glyph = Glyph(*l)
-            namelist.append(glyph)
+            glyphlist.append(glyph)
             dump[l[0]] = glyph
-    return namelist, dump, timestamp
+    return glyphlist, dump, timestamp
 
 
 def setXorMaskType(dump):
@@ -253,27 +248,29 @@ def setXorMaskType(dump):
 
 
 def main():
-    namelist, dump, timestamp = getDump()
+    glyphlist, dump, timestamp = getDump()
     setXorMaskType(dump)
 
-    buhin = {}
-    kaku = {}
+    glyphsByBuhin = {}
+    glyphsByKaku = {}
 
-    for glyph in namelist:
+    for glyph in glyphlist:
+        if "_" in glyph.name or glyph.isAlias():
+            continue
         try:
             bh = glyph.getBuhinHash(dump)
             if bh:
-                buhin.setdefault(bh, []).append(glyph)
+                glyphsByBuhin.setdefault(bh, []).append(glyph)
             kh = glyph.getKakuHash(dump)
             if kh:
-                kaku.setdefault(kh, []).append(glyph)
+                glyphsByKaku.setdefault(kh, []).append(glyph)
         except Exception:
             logging.exception('Error in "%s"', glyph.name)
 
     result = {"buhin": [], "kaku": [], "timestamp": timestamp}
 
-    for b in buhin:
-        for g1, g2 in itertools.combinations(buhin[b], 2):
+    for glyphs in glyphsByBuhin.values():
+        for g1, g2 in itertools.combinations(glyphs, 2):
             if g1.xorMaskType != g2.xorMaskType:
                 continue
             b1 = g1.getBuhin(dump)
@@ -309,8 +306,8 @@ def main():
             else:
                 result["buhin"].append((g1.name, g2.name, g1.rel, g2.rel))
 
-    for k in kaku:
-        for g1, g2 in itertools.combinations(kaku[k], 2):
+    for glyphs in glyphsByKaku.values():
+        for g1, g2 in itertools.combinations(glyphs, 2):
             if g1.xorMaskType != g2.xorMaskType:
                 continue
             k1 = g1.getKaku(dump)
@@ -325,6 +322,7 @@ def main():
                     result["kaku"].append(r)
 
     json.dump(result, open("duplicates.json", "w"), separators=(",", ":"))
+
 
 if __name__ == '__main__':
     main()
