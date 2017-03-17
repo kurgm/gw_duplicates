@@ -225,8 +225,9 @@ def setXorMaskType(dbn):
     neg_masktype = 0
     for m in re.finditer(r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M):
         gn = m.group(1)
-        if gn and gn in dbn:
-            dbn[gn].xorMaskType = neg_masktype
+        if gn:
+            if gn in dbn:
+                dbn[gn].xorMaskType = neg_masktype
         else:
             neg_masktype += 1
 
