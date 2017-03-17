@@ -87,63 +87,8 @@ class Glyph(object):
         k = []
         for row in self.data:
             r = row.split(":")
-            if r[0] == "1":
-                r = [float(x) for x in r]
-                if (r[1] == r[2] == 32.0 and r[4] > r[6] and r[4] - r[6] > r[5] - r[3]) or (r[4] == r[6] and r[3] > r[5]):
-                    r[3:7] = r[5:7] + r[3:5]
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                k.append((1, int(dir1 + 7 * (r[1] // 10) + 28 * (r[2] * 2 if 0.0 < r[
-                         2] < 10.0 else r[2] // 10)), r[3], r[4], r[5], r[6]))
-            elif r[0] == "2":
-                r = [float(x) for x in r]
-                if r[1] == 32.0 and r[2] == 0.0:
-                    if (r[4] == r[8] and r[3] < r[7]) or r[4] > r[8]:
-                        r[3:9] = r[7:9] + r[5:7] + r[3:5]
-                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[8]) > r[7] - r[3] and \
-                   abs(r[3] + (r[7] - r[3]) * (r[6] - r[4]) / (r[8] - r[4]) - r[5]
-                       if abs(r[4] - r[8]) > abs(r[3] - r[7]) else
-                       r[4] + (r[8] - r[4]) * (r[5] - r[3]) /
-                       (r[7] - r[3]) - r[6]
-                       ) <= 5.0:
-                    dir1 = cmp(r[3], r[7]) * 2 + cmp(r[4], r[8]) + 3
-                    k.append(
-                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[7], r[8]))
-                    continue
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                dir2 = cmp(r[5], r[7]) * 2 + cmp(r[6], r[8]) + 3
-                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (
-                    r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
-            elif r[0] == "6" or r[0] == "7":
-                r = [float(x) for x in r]
-                if r[1] == 32.0 and r[2] == 0.0:
-                    if (r[4] == r[10] and r[3] < r[9]) or r[4] > r[10]:
-                        r[3:11] = r[9:11] + r[7:9] + r[5:7] + r[3:5]
-                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[10]) > r[9] - r[3] and max(
-                        (
-                            abs(r[3] + (r[9] - r[3]) *
-                                (r[6] - r[4]) / (r[10] - r[4]) - r[5]),
-                            abs(r[3] + (r[9] - r[3]) *
-                                (r[8] - r[4]) / (r[10] - r[4]) - r[7])
-                        ) if abs(r[4] - r[10]) > abs(r[3] - r[9]) else (
-                            abs(r[4] + (r[10] - r[4]) *
-                                (r[5] - r[3]) / (r[9] - r[3]) - r[6]),
-                            abs(r[4] + (r[10] - r[4]) *
-                                (r[7] - r[3]) / (r[9] - r[3]) - r[8])
-                        )
-                ) <= 5.0:
-                    dir1 = cmp(r[3], r[9]) * 2 + cmp(r[4], r[10]) + 3
-                    k.append(
-                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[9], r[10]))
-                    continue
-                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
-                dir2 = cmp(r[7], r[9]) * 2 + cmp(r[8], r[10]) + 3
-                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (r[2] // 5)), r[
-                         3], r[4], r[5], r[6], r[7], r[8], r[9], r[10]))
-            elif r[0] == "3" or r[0] == "4":
-                r = [float(x) for x in r]
-                k.append(
-                    (3, int((r[1] // 10) + 4 * (r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
-            elif r[0] == "99":
+            strokeType = r[0]
+            if strokeType == "99":
                 bn = r[7].split("@")[0]
                 g = dbn.get(bn)
                 if not g or self is g or g in buhin_stack:
@@ -180,6 +125,62 @@ class Glyph(object):
                         points[i] = area[0] + points[i] * scale[0]
                         points[i + 1] = area[1] + points[i + 1] * scale[1]
                     k.append(bkaku[0:2] + tuple(points))
+            elif strokeType == "1":
+                r = [float(x) for x in r]
+                if (r[1] == r[2] == 32.0 and r[4] > r[6] and r[4] - r[6] > r[5] - r[3]) or (r[4] == r[6] and r[3] > r[5]):
+                    r[3:7] = r[5:7] + r[3:5]
+                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
+                k.append((1, int(dir1 + 7 * (r[1] // 10) + 28 * (r[2] * 2 if 0.0 < r[
+                         2] < 10.0 else r[2] // 10)), r[3], r[4], r[5], r[6]))
+            elif strokeType == "2":
+                r = [float(x) for x in r]
+                if r[1] == 32.0 and r[2] == 0.0:
+                    if (r[4] == r[8] and r[3] < r[7]) or r[4] > r[8]:
+                        r[3:9] = r[7:9] + r[5:7] + r[3:5]
+                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[8]) > r[7] - r[3] and \
+                   abs(r[3] + (r[7] - r[3]) * (r[6] - r[4]) / (r[8] - r[4]) - r[5]
+                       if abs(r[4] - r[8]) > abs(r[3] - r[7]) else
+                       r[4] + (r[8] - r[4]) * (r[5] - r[3]) /
+                       (r[7] - r[3]) - r[6]
+                       ) <= 5.0:
+                    dir1 = cmp(r[3], r[7]) * 2 + cmp(r[4], r[8]) + 3
+                    k.append(
+                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[7], r[8]))
+                    continue
+                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
+                dir2 = cmp(r[5], r[7]) * 2 + cmp(r[6], r[8]) + 3
+                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (
+                    r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
+            elif strokeType == "6" or strokeType == "7":
+                r = [float(x) for x in r]
+                if r[1] == 32.0 and r[2] == 0.0:
+                    if (r[4] == r[10] and r[3] < r[9]) or r[4] > r[10]:
+                        r[3:11] = r[9:11] + r[7:9] + r[5:7] + r[3:5]
+                if r[2] == 0.0 and r[1] in (0.0, 12.0, 22.0, 32.0) and 0 != abs(r[4] - r[10]) > r[9] - r[3] and max(
+                        (
+                            abs(r[3] + (r[9] - r[3]) *
+                                (r[6] - r[4]) / (r[10] - r[4]) - r[5]),
+                            abs(r[3] + (r[9] - r[3]) *
+                                (r[8] - r[4]) / (r[10] - r[4]) - r[7])
+                        ) if abs(r[4] - r[10]) > abs(r[3] - r[9]) else (
+                            abs(r[4] + (r[10] - r[4]) *
+                                (r[5] - r[3]) / (r[9] - r[3]) - r[6]),
+                            abs(r[4] + (r[10] - r[4]) *
+                                (r[7] - r[3]) / (r[9] - r[3]) - r[8])
+                        )
+                ) <= 5.0:
+                    dir1 = cmp(r[3], r[9]) * 2 + cmp(r[4], r[10]) + 3
+                    k.append(
+                        (1, int(dir1 + 7 * (r[1] // 10) + 84), r[3], r[4], r[9], r[10]))
+                    continue
+                dir1 = cmp(r[3], r[5]) * 2 + cmp(r[4], r[6]) + 3
+                dir2 = cmp(r[7], r[9]) * 2 + cmp(r[8], r[10]) + 3
+                k.append((2, int(dir1 + 7 * dir2 + 49 * (r[1] // 5) + 392 * (r[2] // 5)), r[
+                         3], r[4], r[5], r[6], r[7], r[8], r[9], r[10]))
+            elif strokeType == "3" or strokeType == "4":
+                r = [float(x) for x in r]
+                k.append(
+                    (3, int((r[1] // 10) + 4 * (r[2] // 5)), r[3], r[4], r[5], r[6], r[7], r[8]))
         k.sort()
         self.kaku = tuple(k)
         return self.kaku
