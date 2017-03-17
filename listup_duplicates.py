@@ -44,6 +44,7 @@ class Glyph(object):
             if row[0:2] == "0:":
                 continue
             if row[0:2] != "99":
+                buhin = []
                 break
             splitrow = row.split(":")
             buhinname = splitrow[7].split("@")[0]
