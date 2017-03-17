@@ -137,8 +137,7 @@ class Glyph(object):
                 dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
                 k.append((
                     1,
-                    dir1 + 7 * (sttType // 10) +
-                    28 * (endType * 2 if 0 < endType < 10 else endType // 10),
+                    (dir1, sttType if sttType != 2 else 0, endType),
                     x0, y0, x1, y1
                 ))
             elif strokeType == "2":
@@ -153,7 +152,7 @@ class Glyph(object):
                     dir1 = cmp(x0, x2) * 2 + cmp(y0, y2) + 3
                     k.append((
                         1,
-                        dir1 + 7 * (sttType // 10) + 84,
+                        (dir1, sttType, 32),
                         x0, y0, x2, y2
                     ))
                     continue
@@ -161,8 +160,7 @@ class Glyph(object):
                 dir2 = cmp(x1, x2) * 2 + cmp(y1, y2) + 3
                 k.append((
                     2,
-                    dir1 + 7 * dir2 + 49 *
-                        (sttType // 5) + 392 * (endType // 5),
+                    (dir1, dir2, sttType, endType),
                     x0, y0, x1, y1, x2, y2
                 ))
             elif strokeType == "6" or strokeType == "7":
@@ -181,7 +179,7 @@ class Glyph(object):
                     dir1 = cmp(x0, x3) * 2 + cmp(y0, y3) + 3
                     k.append((
                         1,
-                        dir1 + 7 * (sttType // 10) + 84,
+                        (dir1, sttType, 32),
                         x0, y0, x3, y3
                     ))
                     continue
@@ -189,15 +187,14 @@ class Glyph(object):
                 dir2 = cmp(x2, x3) * 2 + cmp(y2, y3) + 3
                 k.append((
                     2,
-                    dir1 + 7 * dir2 + 49 *
-                        (sttType // 5) + 392 * (endType // 5),
+                    (dir1, dir2, sttType, endType),
                     x0, y0, x1, y1, x2, y2, x3, y3
                 ))
             elif strokeType == "3" or strokeType == "4":
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
                 k.append((
                     3,
-                    (sttType // 10) + 4 * (endType // 5),
+                    (sttType, endType),
                     x0, y0, x1, y1, x2, y2
                 ))
         k.sort()
