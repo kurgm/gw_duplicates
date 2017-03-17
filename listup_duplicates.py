@@ -57,7 +57,7 @@ class Glyph(object):
             buhin_stack.append(g)
             area = [float(x) for x in r[3:7]]
             bbs = g.getBuhin(dbn)
-            buhin_stack[-1:] = []
+            buhin_stack.pop()
             if bbs:
                 scale = [(area[2] - area[0]) / 200.0,
                          (area[3] - area[1]) / 200.0]
@@ -156,7 +156,7 @@ class Glyph(object):
                     break
                 buhin_stack.append(g)
                 bk = g.getKaku(dbn)
-                buhin_stack[-1:] = []
+                buhin_stack.pop()
                 area = [float(x) for x in r[3:7]]
                 params = [float(x) for x in r[1:3] + r[9:11]]
                 if len(params) < 4:
