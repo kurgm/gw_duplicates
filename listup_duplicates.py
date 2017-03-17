@@ -134,7 +134,7 @@ class Glyph(object):
                 if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
                         (y0 == y1 and x0 > x1):
                     x0, y0, x1, y1 = x1, y1, x0, y0
-                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
+                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
                 k.append((
                     1,
                     (dir1, sttType if sttType != 2 else 0, endType),
@@ -149,15 +149,15 @@ class Glyph(object):
                        if abs(y0 - y2) > abs(x0 - x2) else
                        y0 + (y2 - y0) * (x1 - x0) / (x2 - x0) - y1
                        ) <= 5.0:
-                    dir1 = cmp(x0, x2) * 2 + cmp(y0, y2) + 3
+                    dir1 = cmp(x0, x2) * 3 + cmp(y0, y2)
                     k.append((
                         1,
                         (dir1, sttType, 32),
                         x0, y0, x2, y2
                     ))
                     continue
-                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
-                dir2 = cmp(x1, x2) * 2 + cmp(y1, y2) + 3
+                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
+                dir2 = cmp(x1, x2) * 3 + cmp(y1, y2)
                 k.append((
                     2,
                     (dir1, dir2, sttType, endType),
@@ -176,15 +176,15 @@ class Glyph(object):
                             abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
                         )
                 ) <= 5.0:
-                    dir1 = cmp(x0, x3) * 2 + cmp(y0, y3) + 3
+                    dir1 = cmp(x0, x3) * 3 + cmp(y0, y3)
                     k.append((
                         1,
                         (dir1, sttType, 32),
                         x0, y0, x3, y3
                     ))
                     continue
-                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
-                dir2 = cmp(x2, x3) * 2 + cmp(y2, y3) + 3
+                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
+                dir2 = cmp(x2, x3) * 3 + cmp(y2, y3)
                 k.append((
                     2,
                     (dir1, dir2, sttType, endType),
@@ -192,8 +192,8 @@ class Glyph(object):
                 ))
             elif strokeType == "3" or strokeType == "4":
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
-                dir1 = cmp(x0, x1) * 2 + cmp(y0, y1) + 3
-                dir2 = cmp(x1, x2) * 2 + cmp(y1, y2) + 3
+                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
+                dir2 = cmp(x1, x2) * 3 + cmp(y1, y2)
                 k.append((
                     3,
                     (dir1, dir2, sttType, endType),
