@@ -4,7 +4,7 @@ python:
 before_install:
   - bash getdump.sh
 before_script:
-  - bash before_script.sh
+  - bash bin/before_script.sh
 script:
   - python listup_dupicates.py
 after_success:
