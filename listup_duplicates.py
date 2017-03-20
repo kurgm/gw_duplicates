@@ -247,6 +247,9 @@ def setXorMaskType(dump):
             neg_masktype += 1
 
 
+henka_re = re.compile(r"-(?:[gtvhmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
+
+
 def main():
     glyphlist, dump, timestamp = getDump()
     setXorMaskType(dump)
@@ -281,23 +284,23 @@ def main():
                 if cmp(B1[1], B1[3]) != cmp(B2[1], B2[3]):
                     break
                 diflim = [15.0, 15.0, 15.0, 15.0]
-                suffix = B1[4][-3:]
-                if suffix[0] != "-":
-                    pass
-                elif suffix == "-01":
-                    diflim[2] = 40.0
-                elif suffix == "-02":
-                    diflim[0] = 40.0
-                elif suffix == "-03":
-                    diflim[3] = 40.0
-                elif suffix == "-04" or suffix == "-14":
-                    diflim[1] = 40.0
-                elif suffix == "-08":
-                    diflim[1] = 25.0
-                    diflim[3] = 25.0
-                elif suffix == "-09":
-                    diflim[0] = 25.0
-                    diflim[2] = 25.0
+                m = henka_re.search(B1[4])
+                if m:
+                    suffix = m.group(1)
+                    if suffix == "01":
+                        diflim[2] = 40.0
+                    elif suffix == "02":
+                        diflim[0] = 40.0
+                    elif suffix == "03":
+                        diflim[3] = 40.0
+                    elif suffix == "04" or suffix == "14":
+                        diflim[1] = 40.0
+                    elif suffix == "08":
+                        diflim[1] = 25.0
+                        diflim[3] = 25.0
+                    elif suffix == "09":
+                        diflim[0] = 25.0
+                        diflim[2] = 25.0
                 if all(abs(p1 - p2) <= lim for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
                     continue
                 if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
