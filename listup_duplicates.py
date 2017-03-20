@@ -293,7 +293,7 @@ def main():
                         diflim[0] = 40.0
                     elif suffix == "03":
                         diflim[3] = 40.0
-                    elif suffix == "04" or suffix == "14":
+                    elif suffix in ("04", "14", "24"):
                         diflim[1] = 40.0
                     elif suffix == "08":
                         diflim[1] = 25.0
