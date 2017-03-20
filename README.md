@@ -1,14 +1,11 @@
 gw_duplicates
 =============
 
-GlyphWiki 上のグリフで重複するものを探す
+GlyphWiki 上のグリフで重複するものを探す - https://kurgm.github.io/gw_duplicates/
 
-1. [dump](http://glyphwiki.org/dump.tar.gz) をダウンロード・展開して `dump_newest_only.txt` をこのフォルダに置く
-
-2.  
-    ```sh
+```sh
+bash getdump.sh  # あるいは dump_newest_only.txt を同じフォルダに置く
 python ./listup_duplicates.py
 ```
-    で `duplicates.json` ができる
 
-3. `index.html` をウェブブラウザで開く
+を実行すると `duplicates.json` が生成される
