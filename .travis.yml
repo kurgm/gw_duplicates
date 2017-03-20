@@ -6,7 +6,7 @@ before_install:
 before_script:
   - bash bin/before_script.sh
 script:
-  - python listup_dupicates.py
+  - python listup_duplicates.py
 after_success:
   - bash bin/deploy.sh
 
