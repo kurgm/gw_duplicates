@@ -107,8 +107,8 @@ document.addEventListener("DOMContentLoaded", function () {
 	function glyphImage(name) {
 		var a = document.createElement("a");
 		var img = document.createElement("img");
-		a.href = "http://glyphwiki.org/wiki/" + name;
-		img.src = "http://glyphwiki.org/glyph/" + name + ".50px.png";
+		a.href = "https://glyphwiki.org/wiki/" + name;
+		img.src = "https://glyphwiki.org/glyph/" + name + ".50px.png";
 		img.alt = name;
 		img.width = img.height = "50";
 		a.appendChild(img);
@@ -195,25 +195,25 @@ document.addEventListener("DOMContentLoaded", function () {
 				cd.className = "control";
 				var a;
 				a = cd.appendChild(document.createElement("a"));
-				a.href = "http://glyphwiki.org/wiki/" + item[1] + "?action=preview&related=" + (item[3] || "u3013") + "&textbox=%5B%5B" + item[0] + "%5D%5D&summary=" + item[0];
+				a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&related=" + (item[3] || "u3013") + "&textbox=%5B%5B" + item[0] + "%5D%5D&summary=" + item[0];
 				a.target = "_new";
 				a.appendChild(document.createTextNode("後者をエイリアスに"));
 				cd.appendChild(document.createTextNode("／"));
 
 				a = cd.appendChild(document.createElement("a"));
-				a.href = "http://glyphwiki.org/wiki/" + item[0] + "?action=preview&related=" + (item[2] || "u3013") + "&textbox=%5B%5B" + item[1] + "%5D%5D&summary=" + item[1];
+				a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&related=" + (item[2] || "u3013") + "&textbox=%5B%5B" + item[1] + "%5D%5D&summary=" + item[1];
 				a.target = "_new";
 				a.appendChild(document.createTextNode("前者をエイリアスに"));
 				cd.appendChild(document.createTextNode("／"));
 
 				a = cd.appendChild(document.createElement("a"));
-				a.href = "http://glyphwiki.org/wiki/" + item[0] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[1];
+				a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[1];
 				a.target = "_new";
 				a.appendChild(document.createTextNode("前者を白紙化"));
 				cd.appendChild(document.createTextNode("／"));
 
 				a = cd.appendChild(document.createElement("a"));
-				a.href = "http://glyphwiki.org/wiki/" + item[1] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[0];
+				a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[0];
 				a.target = "_new";
 				a.appendChild(document.createTextNode("後者を白紙化"));
 			}
@@ -262,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </head>
 <body>
 <h1>GlyphWiki の重複するグリフ</h1>
-<p>グリフ名に関連字を括弧でくくって併記してあります。データはたまに更新します。作った人：<a href="http://glyphwiki.org/wiki/User:twe">利用者:twe</a></p>
+<p>グリフ名に関連字を括弧でくくって併記してあります。データはたまに更新します。作った人：<a href="https://glyphwiki.org/wiki/User:twe">利用者:twe</a></p>
 <form action="#" id="search_form"><input type="text" value="" id="search_field" placeholder="検索するグリフ名の一部(正規表現可)か漢字を入力" style="width:23em"><input type="submit" value="検索">
 <small>※検索条件を解除する場合は空欄にして検索ボタンを押してください</small></form>
 <div id="loading_msg">読み込み中...</div>
@@ -280,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <ul>
 <li>エイリアスでない</li>
 <li>かつ、ユーザー占有グリフでない</li>
-<li>かつ、反転のマスク形状が異なる（<a href="http://glyphwiki.org/wiki/Group:NegativeCharacters">グループ:NegativeCharacters</a>を参照）</li>
+<li>かつ、反転のマスク形状が異なる（<a href="https://glyphwiki.org/wiki/Group:NegativeCharacters">グループ:NegativeCharacters</a>を参照）</li>
 <li>かつ、次の 2 つのうちいずれかを満たす
 <ol>
 <li>
