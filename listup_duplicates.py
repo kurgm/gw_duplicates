@@ -36,6 +36,9 @@ class Glyph(object):
         self.buhin = None
         self.kaku = None
 
+    def __repr__(self):
+        return "Glyph({0.name!r}, {0.rel!r}, {0.data!r})".format(self)
+
     def getBuhin(self, dump):
         if self.buhin is not None:
             return self.buhin
@@ -53,10 +56,13 @@ class Glyph(object):
                 buhin = []
                 logging.error(
                     "'{}' was not found or has a quotation loop".format(buhinname))
+                logging.info("quotation stack: {}".format(buhin_stack))
                 break
             buhin_stack.append(buhinglyph)
-            b_buhins = buhinglyph.getBuhin(dump)
-            buhin_stack.pop()
+            try:
+                b_buhins = buhinglyph.getBuhin(dump)
+            finally:
+                buhin_stack.pop()
             buhinx0, buhiny0, buhinx1, buhiny1 = [
                 float(x) for x in splitrow[3:7]]
             if b_buhins:
@@ -93,10 +99,13 @@ class Glyph(object):
                     k = []
                     logging.error(
                         "'{}' was not found or has a quotation loop".format(buhinname))
+                    logging.info("quotation stack: {}".format(buhin_stack))
                     break
                 buhin_stack.append(buhinglyph)
-                b_kakus = buhinglyph.getKaku(dump)
-                buhin_stack.pop()
+                try:
+                    b_kakus = buhinglyph.getKaku(dump)
+                finally:
+                    buhin_stack.pop()
                 buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in r[3:7]]
                 dpx = float(r[1])
                 dpy = float(r[2])
