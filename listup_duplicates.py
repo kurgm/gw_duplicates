@@ -1,12 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import division
+from __future__ import unicode_literals
+
+import codecs
 import itertools
 import json
 import logging
 import os
 import re
-import urllib2
+
+try:
+    from urllib2 import urlopen
+except:
+    from urllib.request import urlopen
+
+try:
+    cmp
+except NameError:
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -225,7 +240,7 @@ def getDump():
     glyphlist = []
     dump = {}
     DUMP_PATH = "dump_newest_only.txt"
-    with open(DUMP_PATH, "r") as dumpfile:
+    with codecs.open(DUMP_PATH, "r", encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
         timestamp = os.path.getmtime(DUMP_PATH)
@@ -243,7 +258,7 @@ def getDump():
 
 def setXorMaskType(dump):
     neg_url = "http://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
-    neg_data = urllib2.urlopen(neg_url, timeout=60).read()
+    neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
 
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
     neg_masktype = 0
