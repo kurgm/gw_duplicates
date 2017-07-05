@@ -128,7 +128,7 @@ class Glyph(object):
                     if isStretched:
                         points[0::2] = [stretch(dpx, spx, x)
                                         for x in points[0::2]]
-                        points[1::2] = [stretch(dpy, spy, x)
+                        points[1::2] = [stretch(dpy, spy, y)
                                         for y in points[1::2]]
                     points[0::2] = [buhinx0 + x * scale_x
                                     for x in points[0::2]]
