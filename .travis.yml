@@ -3,12 +3,17 @@ python:
   - "2.7"
 before_install:
   - bash getdump.sh
-before_script:
-  - bash bin/before_script.sh
 script:
   - python listup_duplicates.py
-after_success:
-  - bash bin/deploy.sh
+before_deploy:
+  - bash bin/before_deploy.sh
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  on:
+    branch: master
 
 branches:
   only:
