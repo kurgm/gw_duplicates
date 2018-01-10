@@ -274,7 +274,7 @@ def setXorMaskType(dump):
 
 
 henka_re = re.compile(
-    r"-(?:[gtvhmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
+    r"-(?:[gtv]v?|[hmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
 
 
 def main():
