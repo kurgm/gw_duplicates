@@ -1,319 +1,339 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="utf-8">
-<title>GlyphWiki の重複するグリフ</title>
-<style type="text/css">
-#loading_msg {
-	text-align: center;
-	color: gray;
-	font-size: 24px;
-}
-#result > div {
-	border-top: 1px solid #666;
-	font-size: 95%;
-	line-height: 150%;
-	display: -webkit-box;
-	display: -moz-box;
-	display: -ms-flexbox;
-	display: -webkit-flex;
-	display: flex;
-	-webkit-flex-wrap: wrap;
-	-ms-flex-wrap: wrap;
-	flex-wrap: wrap;
-}
-#result div div {
-	-webkit-box-flex: 0;
-	-moz-box-flex: 0;
-	-webkit-flex: 0 1 auto;
-	-ms-flex: 0 1 auto;
-	flex: 0 1 auto;
-}
-#result div div.control {
-	-webkit-box-flex: 1;
-	-moz-box-flex: 1;
-	-webkit-flex: 1 0 auto;
-	-ms-flex: 1 0 auto;
-	flex: 1 0 auto;
-	-webkit-align-self: flex-end;
-	-ms-flex-item-align: end;
-	align-self: flex-end;
-	text-align: right;
-	line-height: 1em;
-}
-.control a {
-	font-size: 85%;
-	color: #666;
-	text-decoration: underline;
-}
-a {
-	text-decoration: none;
-}
-a:hover {
-	text-decoration: underline;
-}
-img {
-	vertical-align: -25%;
-	margin: 2px;
-	padding: 0px;
-	border: solid 1px #aaa;
-}
-.framed {
-	border: 1px solid #999;
-	background-color: #ccc;
-	font-size: 90%;
-	margin: 3px 0;
-}
-.collapsible.collapsed {
-	display: none;
-}
-form {
-	margin: 0;
-	padding: 0;
-}
-</style>
-<script type="text/javascript">
-document.addEventListener("DOMContentLoaded", function () {
-	String.prototype.toCodePoints = function () {
-		var i = 0,
-			len = this.length,
-			points = [];
-		while (i < len) {
-			var x = this.charCodeAt(i++);
-			if (0xD800 <= x && x < 0xDC00) {
-				var y = this.charCodeAt(i++);
-				points.push(0x10000 + ((x & 0x3FF) << 10) | (y & 0x3FF));
-			} else
-				points.push(x);
+	<meta charset="utf-8">
+	<title>GlyphWiki の重複するグリフ</title>
+	<style type="text/css">
+		#loading_msg {
+			text-align: center;
+			color: gray;
+			font-size: 24px;
 		}
-		return points;
-	};
-	String.fromCodePoint = function () {
-		var i = 0,
-			len = arguments.length,
-			points = [];
-		while (i < len) {
-			var x = arguments[i++];
-			if (x < 0x10000)
-				points.push(x);
-			else {
-				x -= 0x10000;
-				points.push(0xD800 | (x >> 10));
-				points.push(0xDC00 | (x & 0x3FF));
-			}
+
+		#result>div {
+			border-top: 1px solid #666;
+			font-size: 95%;
+			line-height: 150%;
+			display: -webkit-box;
+			display: -moz-box;
+			display: -ms-flexbox;
+			display: -webkit-flex;
+			display: flex;
+			-webkit-flex-wrap: wrap;
+			-ms-flex-wrap: wrap;
+			flex-wrap: wrap;
 		}
-		return String.fromCharCode.apply(String, points);
-	};
-	function glyphImage(name) {
-		var a = document.createElement("a");
-		var img = document.createElement("img");
-		a.href = "https://glyphwiki.org/wiki/" + name;
-		img.src = "https://glyphwiki.org/glyph/" + name + ".50px.png";
-		img.alt = name;
-		img.width = img.height = "50";
-		a.appendChild(img);
-		a.appendChild(document.createTextNode(name));
-		return a;
-	}
-	var c_l = document.getElementsByClassName("collapsible-link");
-	var c = function () {
-		if (!this.dataset) return;
-		var o = document.getElementById(this.dataset.colobj);
-		var txt = o.classList.toggle("collapsed") ? "[表示]" : "[隠す]";
-		while (this.firstChild) this.removeChild(this.firstChild);
-		this.appendChild(document.createTextNode(txt));
-	};
-	for (var i = 0, l = c_l.length; i < l; i++) {
-		c_l[i].addEventListener("click", c, false);
-		if (c_l[i].dataset) {
-			var o = document.getElementById(c_l[i].dataset.colobj);
-			o.classList.add("collapsed");
+
+		#result div div {
+			-webkit-box-flex: 0;
+			-moz-box-flex: 0;
+			-webkit-flex: 0 1 auto;
+			-ms-flex: 0 1 auto;
+			flex: 0 1 auto;
 		}
-	}
-	var xhr = new XMLHttpRequest();
-	xhr.open("GET", "duplicates.json", true);
-	xhr.responseType = "json";
-	xhr.onload = function () {
-		var json = xhr.response;
-		//var list = json.buhin;
-		var list = json.buhin.concat(json.kaku);
-		for (var i = 0, l = list.length; i < l; i++) {
-			list[i][4] = i;
+
+		#result div div.control {
+			-webkit-box-flex: 1;
+			-moz-box-flex: 1;
+			-webkit-flex: 1 0 auto;
+			-ms-flex: 1 0 auto;
+			flex: 1 0 auto;
+			-webkit-align-self: flex-end;
+			-ms-flex-item-align: end;
+			align-self: flex-end;
+			text-align: right;
+			line-height: 1em;
 		}
-		var currentPage = 1, items_per_page = 100;
-		var maxPage, searched_list;
-		var search_text = "";
-		function searchResult () {
-			if (search_text === "")
-				searched_list = list;
-			else {
-				if(search_text.match(/^[^\x00-\xFF]+$/)) {
-					var cps = search_text.toCodePoints();
-					for(var i = 0, l = cps.length; i < l; i++) {
-						var hex = cps[i].toString(16);
-						if (hex.length < 4) hex = ("000" + hex).slice(-4)
-						cps[i] = "u" + hex;
+
+		.control a {
+			font-size: 85%;
+			color: #666;
+			text-decoration: underline;
+		}
+
+		a {
+			text-decoration: none;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		img {
+			vertical-align: -25%;
+			margin: 2px;
+			padding: 0px;
+			border: solid 1px #aaa;
+		}
+
+		.framed {
+			border: 1px solid #999;
+			background-color: #ccc;
+			font-size: 90%;
+			margin: 3px 0;
+		}
+
+		.collapsible.collapsed {
+			display: none;
+		}
+
+		form {
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+	<script type="text/javascript">
+		document.addEventListener("DOMContentLoaded", function () {
+			String.prototype.toCodePoints = function () {
+				var i = 0,
+					len = this.length,
+					points = [];
+				while (i < len) {
+					var x = this.charCodeAt(i++);
+					if (0xD800 <= x && x < 0xDC00) {
+						var y = this.charCodeAt(i++);
+						points.push(0x10000 + ((x & 0x3FF) << 10) | (y & 0x3FF));
+					} else {
+						points.push(x);
 					}
-					search_text = "(^|-)" + cps.join("-") + "($|-)";
 				}
-				try {
-					var re = new RegExp(search_text);
-				} catch(e) {
-					alert("正規表現にエラーがあります。\n\n" + e.message);
-					return;
+				return points;
+			};
+			String.fromCodePoint = function () {
+				var i = 0,
+					len = arguments.length,
+					points = [];
+				while (i < len) {
+					var x = arguments[i++];
+					if (x < 0x10000) {
+						points.push(x);
+					} else {
+						x -= 0x10000;
+						points.push(0xD800 | (x >> 10));
+						points.push(0xDC00 | (x & 0x3FF));
+					}
 				}
-				searched_list = [];
+				return String.fromCharCode.apply(String, points);
+			};
+			function glyphImage(name) {
+				var a = document.createElement("a");
+				var img = document.createElement("img");
+				a.href = "https://glyphwiki.org/wiki/" + name;
+				img.src = "https://glyphwiki.org/glyph/" + name + ".50px.png";
+				img.alt = name;
+				img.width = img.height = "50";
+				a.appendChild(img);
+				a.appendChild(document.createTextNode(name));
+				return a;
+			}
+			var c_l = document.getElementsByClassName("collapsible-link");
+			var c = function () {
+				if (!this.dataset) { return; }
+				var o = document.getElementById(this.dataset.colobj);
+				var txt = o.classList.toggle("collapsed") ? "[表示]" : "[隠す]";
+				while (this.firstChild) { this.removeChild(this.firstChild); }
+				this.appendChild(document.createTextNode(txt));
+			};
+			for (var i = 0, l = c_l.length; i < l; i++) {
+				c_l[i].addEventListener("click", c, false);
+				if (c_l[i].dataset) {
+					var o = document.getElementById(c_l[i].dataset.colobj);
+					o.classList.add("collapsed");
+				}
+			}
+			var xhr = new XMLHttpRequest();
+			xhr.open("GET", "duplicates.json", true);
+			xhr.responseType = "json";
+			xhr.onload = function () {
+				var json = xhr.response;
+				// var list = json.buhin;
+				var list = json.buhin.concat(json.kaku);
 				for (var i = 0, l = list.length; i < l; i++) {
-					var item = list[i];
-					if (item[0].match(re) || item[1].match(re) || item[2] && item[2].match(re) || item[3] && item[3].match(re))
-						searched_list.push(item);
+					list[i][4] = i;
 				}
-			}
-			maxPage = Math.ceil(searched_list.length / items_per_page);
-		}
-		searchResult();
-		function showPage() {
-			var df = document.createDocumentFragment();
-			var i = (currentPage - 1) * items_per_page, m = Math.min(searched_list.length, currentPage * items_per_page)
-			df.appendChild(document.createElement("div")).appendChild(document.createTextNode(
-				"dump: " + new Date(json.timestamp * 1000).toLocaleString() + "; " +
-				(m === 0 ?
-					"No items found" :
-				 	((i+1) + "-" + m + " of " + searched_list.length + " item" + (searched_list.length === 1 ? "" : "s") + " shown below"))
-			));
-			for (; i < m; i++) {
-				var item = searched_list[i];
-				var d = document.createElement("div");
-				df.appendChild(d);
-				var d2 = d.appendChild(document.createElement("div"));
-				d2.appendChild(document.createTextNode(item[4] + 1 + ". "));
-				d2.appendChild(glyphImage(item[0]));
-				d2.appendChild(document.createTextNode((item[2] ? "(" + String.fromCodePoint(parseInt(item[2].slice(1), 16)) + ")" : "") + " vs. "));
-				d2.appendChild(glyphImage(item[1]));
-				d2.appendChild(document.createTextNode(item[3] ? "(" + String.fromCodePoint(parseInt(item[3].slice(1), 16)) + ")" : ""));
-				var cd = d.appendChild(document.createElement("div"));
-				cd.className = "control";
-				var a;
-				a = cd.appendChild(document.createElement("a"));
-				a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&related=" + (item[3] || "u3013") + "&textbox=%5B%5B" + item[0] + "%5D%5D&summary=" + item[0];
-				a.target = "_new";
-				a.appendChild(document.createTextNode("後者をエイリアスに"));
-				cd.appendChild(document.createTextNode("／"));
+				var currentPage = 1, items_per_page = 100;
+				var maxPage, searched_list;
+				var search_text = "";
+				function searchResult() {
+					if (search_text === "") {
+						searched_list = list;
+					} else {
+						if (search_text.match(/^[^\x00-\xFF]+$/)) {
+							var cps = search_text.toCodePoints();
+							for (var i = 0, l = cps.length; i < l; i++) {
+								var hex = cps[i].toString(16);
+								if (hex.length < 4) { hex = ("000" + hex).slice(-4); }
+								cps[i] = "u" + hex;
+							}
+							search_text = "(^|-)" + cps.join("-") + "($|-)";
+						}
+						try {
+							var re = new RegExp(search_text);
+						} catch (e) {
+							alert("正規表現にエラーがあります。\n\n" + e.message);
+							return;
+						}
+						searched_list = [];
+						for (var i = 0, l = list.length; i < l; i++) {
+							var item = list[i];
+							if (item[0].match(re) || item[1].match(re) || item[2] && item[2].match(re) || item[3] && item[3].match(re)) {
+								searched_list.push(item);
+							}
+						}
+					}
+					maxPage = Math.ceil(searched_list.length / items_per_page);
+				}
+				searchResult();
+				function showPage() {
+					var df = document.createDocumentFragment();
+					var i = (currentPage - 1) * items_per_page, m = Math.min(searched_list.length, currentPage * items_per_page);
+					df.appendChild(document.createElement("div")).appendChild(document.createTextNode(
+						"dump: " + new Date(json.timestamp * 1000).toLocaleString() + "; " +
+						(m === 0
+							? "No items found"
+							: ((i + 1) + "-" + m + " of " + searched_list.length + " item" + (searched_list.length === 1 ? "" : "s") + " shown below")
+						)
+					));
+					for (; i < m; i++) {
+						var item = searched_list[i];
+						var d = document.createElement("div");
+						df.appendChild(d);
+						var d2 = d.appendChild(document.createElement("div"));
+						d2.appendChild(document.createTextNode(item[4] + 1 + ". "));
+						d2.appendChild(glyphImage(item[0]));
+						d2.appendChild(document.createTextNode((item[2] ? "(" + String.fromCodePoint(parseInt(item[2].slice(1), 16)) + ")" : "") + " vs. "));
+						d2.appendChild(glyphImage(item[1]));
+						d2.appendChild(document.createTextNode(item[3] ? "(" + String.fromCodePoint(parseInt(item[3].slice(1), 16)) + ")" : ""));
+						var cd = d.appendChild(document.createElement("div"));
+						cd.className = "control";
+						var a;
+						a = cd.appendChild(document.createElement("a"));
+						a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&related=" + (item[3] || "u3013") + "&textbox=%5B%5B" + item[0] + "%5D%5D&summary=" + item[0];
+						a.target = "_new";
+						a.appendChild(document.createTextNode("後者をエイリアスに"));
+						cd.appendChild(document.createTextNode("／"));
 
-				a = cd.appendChild(document.createElement("a"));
-				a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&related=" + (item[2] || "u3013") + "&textbox=%5B%5B" + item[1] + "%5D%5D&summary=" + item[1];
-				a.target = "_new";
-				a.appendChild(document.createTextNode("前者をエイリアスに"));
-				cd.appendChild(document.createTextNode("／"));
+						a = cd.appendChild(document.createElement("a"));
+						a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&related=" + (item[2] || "u3013") + "&textbox=%5B%5B" + item[1] + "%5D%5D&summary=" + item[1];
+						a.target = "_new";
+						a.appendChild(document.createTextNode("前者をエイリアスに"));
+						cd.appendChild(document.createTextNode("／"));
 
-				a = cd.appendChild(document.createElement("a"));
-				a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[1];
-				a.target = "_new";
-				a.appendChild(document.createTextNode("前者を白紙化"));
-				cd.appendChild(document.createTextNode("／"));
+						a = cd.appendChild(document.createElement("a"));
+						a.href = "https://glyphwiki.org/wiki/" + item[0] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[1];
+						a.target = "_new";
+						a.appendChild(document.createTextNode("前者を白紙化"));
+						cd.appendChild(document.createTextNode("／"));
 
-				a = cd.appendChild(document.createElement("a"));
-				a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[0];
-				a.target = "_new";
-				a.appendChild(document.createTextNode("後者を白紙化"));
-			}
-			var res = document.getElementById("result");
-			while(res.firstChild) res.removeChild(res.firstChild);
-			res.appendChild(df);
-			var prev_disabled = currentPage <= 1,
-			    next_disabled = currentPage >= maxPage;
-			document.getElementById("page_first").disabled = prev_disabled;
-			document.getElementById("page_prev").disabled  = prev_disabled;
-			document.getElementById("page_next").disabled  = next_disabled;
-			document.getElementById("page_last").disabled  = next_disabled;
-			var pageno = document.getElementById("page_no");
-			while(pageno.firstChild) pageno.removeChild(pageno.firstChild);
-			pageno.appendChild(document.createTextNode(currentPage + "/" + maxPage));
-		}
-		document.getElementById("page_first").addEventListener("click", function () {
-			currentPage = 1;
-			showPage();
-		});
-		document.getElementById("page_prev").addEventListener("click", function () {
-			currentPage--;
-			showPage();
-		});
-		document.getElementById("page_next").addEventListener("click", function () {
-			currentPage++;
-			showPage();
-		});
-		document.getElementById("page_last").addEventListener("click", function () {
-			currentPage = maxPage;
-			showPage();
-		});
-		document.getElementById("search_form").addEventListener("submit", function (evt) {
-			search_text = document.getElementById("search_field").value;
-			searchResult();
-			currentPage = 1;
-			showPage();
-			evt.preventDefault();
-		});
-		document.getElementById("loading_msg").style.display = "none";
-		showPage();
-	};
-	xhr.send(null);
-}, false);
-</script>
+						a = cd.appendChild(document.createElement("a"));
+						a.href = "https://glyphwiki.org/wiki/" + item[1] + "?action=preview&textbox=0%3A0%3A0%3A0&summary=" + item[0];
+						a.target = "_new";
+						a.appendChild(document.createTextNode("後者を白紙化"));
+					}
+					var res = document.getElementById("result");
+					while (res.firstChild) { res.removeChild(res.firstChild); }
+					res.appendChild(df);
+					var prev_disabled = currentPage <= 1,
+						next_disabled = currentPage >= maxPage;
+					document.getElementById("page_first").disabled = prev_disabled;
+					document.getElementById("page_prev").disabled = prev_disabled;
+					document.getElementById("page_next").disabled = next_disabled;
+					document.getElementById("page_last").disabled = next_disabled;
+					var pageno = document.getElementById("page_no");
+					while (pageno.firstChild) { pageno.removeChild(pageno.firstChild); }
+					pageno.appendChild(document.createTextNode(currentPage + "/" + maxPage));
+				}
+				document.getElementById("page_first").addEventListener("click", function () {
+					currentPage = 1;
+					showPage();
+				});
+				document.getElementById("page_prev").addEventListener("click", function () {
+					currentPage--;
+					showPage();
+				});
+				document.getElementById("page_next").addEventListener("click", function () {
+					currentPage++;
+					showPage();
+				});
+				document.getElementById("page_last").addEventListener("click", function () {
+					currentPage = maxPage;
+					showPage();
+				});
+				document.getElementById("search_form").addEventListener("submit", function (evt) {
+					search_text = document.getElementById("search_field").value;
+					searchResult();
+					currentPage = 1;
+					showPage();
+					evt.preventDefault();
+				});
+				document.getElementById("loading_msg").style.display = "none";
+				showPage();
+			};
+			xhr.send(null);
+		}, false);
+	</script>
 </head>
+
 <body>
-<h1>GlyphWiki の重複するグリフ</h1>
-<p>グリフ名に関連字を括弧でくくって併記してあります。データはたまに更新します。作った人：<a href="https://glyphwiki.org/wiki/User:twe">利用者:twe</a></p>
-<form action="#" id="search_form"><input type="text" value="" id="search_field" placeholder="検索するグリフ名の一部(正規表現可)か漢字を入力" style="width:23em"><input type="submit" value="検索">
-<small>※検索条件を解除する場合は空欄にして検索ボタンを押してください</small></form>
-<div id="loading_msg">読み込み中...</div>
-<div id="result"></div>
-<div style="text-align:center;border-width:1px 0;border-color:#000;border-style:solid">
-<input type="button" value="&laquo;" id="page_first" title="最初のページ">
-<input type="button" value="&lsaquo;" id="page_prev" title="前のページ">
-<span id="page_no">1/1</span>
-<input type="button" value="&rsaquo;" id="page_next" title="次のページ">
-<input type="button" value="&raquo;" id="page_last" title="最後のページ">
-</div>
-<div class="framed">
-<p>現時点での抽出条件：<a href="javascript:void(0)" class="collapsible-link" data-colobj="col1">[表示]</a></p>
-<div id="col1" class="collapsible">
-<ul>
-<li>エイリアスでない</li>
-<li>かつ、ユーザー占有グリフでない</li>
-<li>かつ、反転のマスク形状が異なる（<a href="https://glyphwiki.org/wiki/Group:NegativeCharacters">グループ:NegativeCharacters</a>を参照）</li>
-<li>かつ、次の 2 つのうちいずれかを満たす
-<ol>
-<li>
-<ul>
-<li>部品のみで構成されているグリフである（ただし 0:0:0:0 などは無視する）</li>
-<li>かつ、グリフを構成している部品のうち（1 つ以上の）部品のみで構成されているものをすべて分解する（という操作を再帰的に行う。例えば u9df2 (鷲)→u5c31 (就) + u9ce5-04 (鳥)→u4eac-01 (京) + u5c24-02 (尤) + u9ce5-04 (鳥)。旧部品は最新版に同じと見なす）とき、
-<ul>
-<li>2 つのグリフが同じ部品から構成されている（順序は問わない）</li>
-<li>かつ、それぞれの構成部品について、
-<ul>
-<li>部品の仮想ボディの各辺どうしの距離がすべて 15 以下である（ただし部品名が-01、-02 などで終わる場合、この数値は微調整されます）</li>
-<li>または、部品の仮想ボディの中心の x 座標、y 座標それぞれの差（の絶対値）がどちらも 10 以下である</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li><li>すべての部品を筆画に分解する（旧部品は最新版に同じと見なす）とき、
-<ul>
-<li>同じ種類・数の筆画から構成されている（ただし曲線・複曲線・縦払いと、折れ線・乙線はそれぞれ同じ種類とみなす。曲線・複曲線・縦払いで、始点の形状が「細入り」でなく終点の形状が「右払い」であり、かつほぼ直線的なものは、終点の形状が「接続」である直線とみなす。0:0:0:0 などは無視する。順序は問わない）</li>
-<li>かつ、それぞれの筆画について、
-<ul>
-<li>筆画の方向が同じ方向である（直線以外は、始点における接線の向きと、終点における接線の向きの両方。ここで「同じ方向である」とは、2 つの接線ベクトルの x 成分の符号と y 成分の符号がそれぞれ一致することをいう。一部の種類の筆画については逆向きも同じ方向とする）</li>
-<li>かつ、始点・終点の形状が同じである（ただし横画の始点の形状の「開放」と「接続(横)」は区別しない）</li>
-<li>かつ、筆画の始点・終点両方について x 座標、y 座標それぞれの差（の絶対値）がどちらも 20 以下である</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-</li>
-</ul>
-</div>
-</div>
+	<h1>GlyphWiki の重複するグリフ</h1>
+	<p>グリフ名に関連字を括弧でくくって併記してあります。データはたまに更新します。作った人：<a href="https://glyphwiki.org/wiki/User:twe">利用者:twe</a></p>
+	<form action="#" id="search_form">
+		<input type="text" value="" id="search_field" placeholder="検索するグリフ名の一部(正規表現可)か漢字を入力" style="width:23em">
+		<input type="submit" value="検索">
+		<small>※検索条件を解除する場合は空欄にして検索ボタンを押してください</small>
+	</form>
+	<div id="loading_msg">読み込み中...</div>
+	<div id="result"></div>
+	<div style="text-align:center;border-width:1px 0;border-color:#000;border-style:solid">
+		<input type="button" value="&laquo;" id="page_first" title="最初のページ">
+		<input type="button" value="&lsaquo;" id="page_prev" title="前のページ">
+		<span id="page_no">1/1</span>
+		<input type="button" value="&rsaquo;" id="page_next" title="次のページ">
+		<input type="button" value="&raquo;" id="page_last" title="最後のページ">
+	</div>
+	<div class="framed">
+		<p>現時点での抽出条件：<a href="javascript:void(0)" class="collapsible-link" data-colobj="col1">[表示]</a></p>
+		<div id="col1" class="collapsible">
+			<ul>
+				<li>エイリアスでない</li>
+				<li>かつ、ユーザー占有グリフでない</li>
+				<li>かつ、反転のマスク形状が異なる（<a href="https://glyphwiki.org/wiki/Group:NegativeCharacters">グループ:NegativeCharacters</a>を参照）</li>
+				<li>かつ、次の 2 つのうちいずれかを満たす
+					<ol>
+						<li>
+							<ul>
+								<li>部品のみで構成されているグリフである（ただし 0:0:0:0 などは無視する）</li>
+								<li>かつ、グリフを構成している部品のうち（1 つ以上の）部品のみで構成されているものをすべて分解する（という操作を再帰的に行う。例えば u9df2 (鷲)→u5c31 (就) + u9ce5-04 (鳥)→u4eac-01 (京) + u5c24-02 (尤) + u9ce5-04 (鳥)。旧部品は最新版に同じと見なす）とき、
+									<ul>
+										<li>2 つのグリフが同じ部品から構成されている（順序は問わない）</li>
+										<li>かつ、それぞれの構成部品について、
+											<ul>
+												<li>部品の仮想ボディの各辺どうしの距離がすべて 15 以下である（ただし部品名が-01、-02 などで終わる場合、この数値は微調整されます）</li>
+												<li>または、部品の仮想ボディの中心の x 座標、y 座標それぞれの差（の絶対値）がどちらも 10 以下である</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</li>
+						<li>すべての部品を筆画に分解する（旧部品は最新版に同じと見なす）とき、
+							<ul>
+								<li>同じ種類・数の筆画から構成されている（ただし曲線・複曲線・縦払いと、折れ線・乙線はそれぞれ同じ種類とみなす。曲線・複曲線・縦払いで、始点の形状が「細入り」でなく終点の形状が「右払い」であり、かつほぼ直線的なものは、終点の形状が「接続」である直線とみなす。0:0:0:0 などは無視する。順序は問わない）</li>
+								<li>かつ、それぞれの筆画について、
+									<ul>
+										<li>筆画の方向が同じ方向である（直線以外は、始点における接線の向きと、終点における接線の向きの両方。ここで「同じ方向である」とは、2 つの接線ベクトルの x 成分の符号と y 成分の符号がそれぞれ一致することをいう。一部の種類の筆画については逆向きも同じ方向とする）</li>
+										<li>かつ、始点・終点の形状が同じである（ただし横画の始点の形状の「開放」と「接続(横)」は区別しない）</li>
+										<li>かつ、筆画の始点・終点両方について x 座標、y 座標それぞれの差（の絶対値）がどちらも 20 以下である</li>
+									</ul>
+								</li>
+							</ul>
+						</li>
+					</ol>
+				</li>
+			</ul>
+		</div>
+	</div>
 </body>
+
 </html>

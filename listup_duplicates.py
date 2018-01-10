@@ -13,7 +13,7 @@ import re
 
 try:
     from urllib2 import urlopen
-except:
+except ImportError:
     from urllib.request import urlopen
 
 try:
@@ -70,8 +70,8 @@ class Glyph(object):
             if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
                 buhin = []
                 logging.error(
-                    "'{}' was not found or has a quotation loop".format(buhinname))
-                logging.info("quotation stack: {}".format(buhin_stack))
+                    "'%s' was not found or has a quotation loop", buhinname)
+                logging.info("quotation stack: %r", buhin_stack)
                 break
             buhin_stack.append(buhinglyph)
             try:
@@ -113,8 +113,8 @@ class Glyph(object):
                 if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
                     k = []
                     logging.error(
-                        "'{}' was not found or has a quotation loop".format(buhinname))
-                    logging.info("quotation stack: {}".format(buhin_stack))
+                        "'%s' was not found or has a quotation loop", buhinname)
+                    logging.info("quotation stack: %r", buhin_stack)
                     break
                 buhin_stack.append(buhinglyph)
                 try:
@@ -191,15 +191,16 @@ class Glyph(object):
                 x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in r[3:11]]
                 if sttType == 32 and endType == 0 and ((y0 == y3 and x0 > x3) or y0 > y3):
                     x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
-                if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y3) >= x3 - x0 and max(
-                        (
-                            abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
-                            abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
-                        ) if abs(y0 - y3) > abs(x0 - x3) else (
-                            abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
-                            abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
-                        )
-                ) <= 5.0:
+                if endType == 0 and sttType in (0, 12, 22, 32) and \
+                    0 != abs(y0 - y3) >= x3 - x0 and max(
+                            (
+                                abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
+                                abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
+                            ) if abs(y0 - y3) > abs(x0 - x3) else (
+                                abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
+                                abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
+                            )
+                    ) <= 5.0:
                     dir1 = cmp(x0, x3) * 3 + cmp(y0, y3)
                     k.append((
                         1,
@@ -262,7 +263,8 @@ def setXorMaskType(dump):
 
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
     neg_masktype = 0
-    for m in re.finditer(r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M):
+    for m in re.finditer(
+            r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M):
         gn = m.group(1)
         if gn:
             if gn in dump:
@@ -271,7 +273,8 @@ def setXorMaskType(dump):
             neg_masktype += 1
 
 
-henka_re = re.compile(r"-(?:[gtvhmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
+henka_re = re.compile(
+    r"-(?:[gtvhmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
 
 
 def main():
@@ -327,7 +330,8 @@ def main():
                         diflim[2] = 25.0
                 if all(abs(p1 - p2) <= lim for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
                     continue
-                if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
+                if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
+                        abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
                     continue
                 break
             else:
@@ -340,7 +344,8 @@ def main():
             k1 = g1.getKaku(dump)
             k2 = g2.getKaku(dump)
             for (K1, K2) in zip(k1, k2):
-                if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(K1[2:4] + K1[-2:], K2[2:4] + K2[-2:])):
+                if all(abs(p1 - p2) <= 20.0
+                       for (p1, p2) in zip(K1[2:4] + K1[-2:], K2[2:4] + K2[-2:])):
                     continue
                 break
             else:
