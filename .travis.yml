@@ -2,9 +2,13 @@ language: python
 python:
   - "2.7"
 before_install:
+  - nvm install node
+  - pushd viewer && npm install && popd
   - bash getdump.sh
 script:
   - python listup_duplicates.py
+  - pushd viewer && npm run build && npm run lint && popd
+  - mv duplicates.json viewer/dist/
 before_deploy:
   - bash bin/before_deploy.sh
 
@@ -12,6 +16,7 @@ deploy:
   provider: pages
   skip_cleanup: true
   github_token: $GH_TOKEN
+  local_dir: viewer/dist
   on:
     branch: master
 

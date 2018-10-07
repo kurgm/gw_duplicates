@@ -1,0 +1,29 @@
+{
+  "name": "gw_duplicates-viewer",
+  "version": "1.0.0",
+  "description": "Viewer for gw_duplicates",
+  "main": "index.js",
+  "scripts": {
+    "build": "parcel build src/index.pug --public-url ./",
+    "watch": "parcel src/index.pug",
+    "lint": "tslint -c tslint.json 'src/**/*.ts'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kurogoma",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "^16.4.15",
+    "@types/react-dom": "^16.0.8",
+    "@types/react-virtualized": "^9.18.7",
+    "parcel-bundler": "^1.10.2",
+    "pug": "^2.0.3",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.1"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "react": "^16.5.2",
+    "react-dom": "^16.5.2",
+    "react-virtualized": "^9.20.1"
+  }
+}
