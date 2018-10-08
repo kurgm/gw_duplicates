@@ -12,14 +12,14 @@ export class Cell extends React.Component<ICellProps> {
     const url = `https://glyphwiki.org/wiki/${this.props.name}`;
     return (
       <div>
-        <a href={url}>
+        <a href={url} target="_new">
           <img
             src={`https://glyphwiki.org/glyph/${this.props.name}.svg`}
             alt={this.props.name}
             className="thumb"
           />
         </a>
-        <a href={url}>{this.props.name}</a>
+        <a href={url} target="_new">{this.props.name}</a>
         {this.props.related && `(${uxxxx2char(this.props.related)})`}
         <div className="filler"></div>
         <a
@@ -30,6 +30,7 @@ export class Cell extends React.Component<ICellProps> {
             textbox: `[[${this.props.oppositeName}]]`,
           })}
           className="edit-link"
+          target="_new"
           title="このグリフを、もう片方のグリフを参照するエイリアスに変更します。"
         >
           エイリアス化
@@ -42,6 +43,7 @@ export class Cell extends React.Component<ICellProps> {
             textbox: "0:0:0:0",
           })}
           className="edit-link"
+          target="_new"
           title="このグリフを白紙化します。"
         >
           白紙化
