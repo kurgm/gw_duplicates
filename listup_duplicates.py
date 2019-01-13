@@ -153,6 +153,10 @@ def get_kaku_info(line_data):
         x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
         return 3, (sttType, endType), (x0, y0, x1, y1, x2, y2)
 
+    if strokeType == "0" and sttType in (97, 98, 99):
+        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+        return 0, (sttType, endType), (x0, y0, x1, y1)
+
     return None
 
 
@@ -172,12 +176,12 @@ class Glyph(object):
     def getBuhin(self, dump):
         buhin = []
         for row in self.data:
-            if row.startswith("0:"):
+            splitrow = row.split(":")
+            if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
                 continue
-            if not row.startswith("99"):
+            if splitrow[0] != "99":
                 buhin = []
                 break
-            splitrow = row.split(":")
             buhinname = splitrow[7].split("@")[0]
             b_buhins = dump[buhinname].getBuhin(dump)
             x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
