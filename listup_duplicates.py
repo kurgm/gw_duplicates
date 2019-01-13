@@ -79,6 +79,11 @@ def check_circular_call_arg0(f):
     return wrapper
 
 
+def coord_mapper(bp0, bp1):
+    scale = (bp1 - bp0) / 200.0
+    return lambda p: bp0 + p * scale
+
+
 def stretch(dp, sp, p, pmin=12.0, pmax=188.0):
     if p < sp + 100.0:
         p1 = pmin
@@ -91,6 +96,26 @@ def stretch(dp, sp, p, pmin=12.0, pmax=188.0):
         p2 = pmax
         p4 = pmax
     return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
+
+
+def stretch_mapper(dp, sp, coords=[]):
+    if coords:
+        pmin = min(coords)
+        pmax = max(coords)
+    else:
+        pmin = 12.0
+        pmax = 188.0
+    return lambda p: stretch(dp, sp, p, pmin, pmax)
+
+
+def compose(f, g):
+    return lambda *args: f(g(*args))
+
+
+def dist_from_line(x0, y0, x1, y1, x, y):
+    if abs(y0 - y1) > abs(x0 - x1):
+        return abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0) - x)
+    return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
 
 
 class Glyph(object):
@@ -109,9 +134,9 @@ class Glyph(object):
     def getBuhin(self, dump):
         buhin = []
         for row in self.data:
-            if row[0:2] == "0:":
+            if row.startswith("0:"):
                 continue
-            if row[0:2] != "99":
+            if not row.startswith("99"):
                 buhin = []
                 break
             splitrow = row.split(":")
@@ -120,14 +145,12 @@ class Glyph(object):
             buhinx0, buhiny0, buhinx1, buhiny1 = [
                 float(x) for x in splitrow[3:7]]
             if b_buhins:
-                scale_x = (buhinx1 - buhinx0) / 200.0
-                scale_y = (buhiny1 - buhiny0) / 200.0
+                x_map = coord_mapper(buhinx0, buhinx1)
+                y_map = coord_mapper(buhiny0, buhiny1)
                 for b_buhinx0, b_buhiny0, b_buhinx1, b_buhiny1, b_buhinname in b_buhins:
                     buhin.append((
-                        buhinx0 + b_buhinx0 * scale_x,
-                        buhiny0 + b_buhiny0 * scale_y,
-                        buhinx0 + b_buhinx1 * scale_x,
-                        buhiny0 + b_buhiny1 * scale_y,
+                        x_map(b_buhinx0), y_map(b_buhiny0),
+                        x_map(b_buhinx1), y_map(b_buhiny1),
                         b_buhinname
                     ))
             else:
@@ -157,42 +180,25 @@ class Glyph(object):
                 else:
                     spx = float(r[9])
                     spy = float(r[10])
-                isStretched = False
+                x_map = coord_mapper(buhinx0, buhinx1)
+                y_map = coord_mapper(buhiny0, buhiny1)
                 if not dpx == dpy == 0.0:
-                    isStretched = True
                     if dpx > 100.0:
                         dpx -= 200.0  # 任意点モード
                     else:
                         spx = spy = 0.0  # 中心点モード
-                    xs = [x for b_kaku in b_kakus for x in b_kaku[2::2]]
-                    ys = [y for b_kaku in b_kakus for y in b_kaku[3::2]]
-                    if not xs:
-                        minx = 12.0
-                        maxx = 188.0
-                    else:
-                        minx = min(xs)
-                        maxx = max(xs)
-                    if not ys:
-                        miny = 12.0
-                        maxy = 188.0
-                    else:
-                        miny = min(ys)
-                        maxy = max(ys)
-                scale_x = (buhinx1 - buhinx0) / 200.0
-                scale_y = (buhiny1 - buhiny0) / 200.0
+                    stretch_x = stretch_mapper(
+                        dpx, spx,
+                        [x for b_kaku in b_kakus for x in b_kaku[2::2]])
+                    stretch_y = stretch_mapper(
+                        dpy, spy,
+                        [y for b_kaku in b_kakus for y in b_kaku[3::2]])
+                    x_map = compose(x_map, stretch_x)
+                    y_map = compose(y_map, stretch_y)
                 for b_kaku in b_kakus:
                     points = list(b_kaku[2:])
-                    if isStretched:
-                        points[0::2] = [
-                            stretch(dpx, spx, x, pmin=minx, pmax=maxx)
-                            for x in points[0::2]]
-                        points[1::2] = [
-                            stretch(dpy, spy, y, pmin=miny, pmax=maxy)
-                            for y in points[1::2]]
-                    points[0::2] = [buhinx0 + x * scale_x
-                                    for x in points[0::2]]
-                    points[1::2] = [buhiny0 + y * scale_y
-                                    for y in points[1::2]]
+                    points[0::2] = [x_map(x) for x in points[0::2]]
+                    points[1::2] = [y_map(y) for y in points[1::2]]
                     k.append(b_kaku[0:2] + tuple(points))
                 continue
             sttType = int(r[1])
@@ -214,11 +220,7 @@ class Glyph(object):
                     x0, y0, x2, y2 = x2, y2, x0, y0
                 if endType == 0 and sttType in (0, 12, 22, 32) and \
                         0 != abs(y0 - y2) >= x2 - x0 and \
-                        abs(
-                                x0 + (x2 - x0) * (y1 - y0) / (y2 - y0) - x1
-                                if abs(y0 - y2) > abs(x0 - x2) else
-                                y0 + (y2 - y0) * (x1 - x0) / (x2 - x0) - y1
-                        ) <= 5.0:
+                        dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
                     dir1 = cmp(x0, x2) * 3 + cmp(y0, y2)
                     k.append((
                         1,
@@ -239,15 +241,8 @@ class Glyph(object):
                     x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
                 if endType == 0 and sttType in (0, 12, 22, 32) and \
                         0 != abs(y0 - y3) >= x3 - x0 and \
-                        max(
-                                (
-                                    abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
-                                    abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
-                                ) if abs(y0 - y3) > abs(x0 - x3) else (
-                                    abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
-                                    abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
-                                )
-                        ) <= 5.0:
+                        dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
+                        dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
                     dir1 = cmp(x0, x3) * 3 + cmp(y0, y3)
                     k.append((
                         1,
@@ -278,7 +273,8 @@ class Glyph(object):
         return tuple(k[0:2] for k in self.getKaku(dump))
 
     def isAlias(self):
-        return len(self.data) == 1 and self.data[0][:19] == "99:0:0:0:0:200:200:"
+        return len(self.data) == 1 and \
+            self.data[0].startswith("99:0:0:0:0:200:200:")
 
     xorMaskType = 0
 
