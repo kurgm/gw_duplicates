@@ -130,21 +130,37 @@ class Glyph(object):
                     spx = float(r[9])
                     spy = float(r[10])
                 isStretched = False
-                if not (dpx == dpy == 0.0):
+                if not dpx == dpy == 0.0:
                     isStretched = True
                     if dpx > 100.0:
                         dpx -= 200.0  # 任意点モード
                     else:
                         spx = spy = 0.0  # 中心点モード
+                    xs = [x for b_kaku in b_kakus for x in b_kaku[2::2]]
+                    ys = [y for b_kaku in b_kakus for y in b_kaku[3::2]]
+                    if not xs:
+                        minx = 12.0
+                        maxx = 188.0
+                    else:
+                        minx = min(xs)
+                        maxx = max(xs)
+                    if not ys:
+                        miny = 12.0
+                        maxy = 188.0
+                    else:
+                        miny = min(ys)
+                        maxy = max(ys)
                 scale_x = (buhinx1 - buhinx0) / 200.0
                 scale_y = (buhiny1 - buhiny0) / 200.0
                 for b_kaku in b_kakus:
                     points = list(b_kaku[2:])
                     if isStretched:
-                        points[0::2] = [stretch(dpx, spx, x)
-                                        for x in points[0::2]]
-                        points[1::2] = [stretch(dpy, spy, y)
-                                        for y in points[1::2]]
+                        points[0::2] = [
+                            stretch(dpx, spx, x, min=minx, max=maxx)
+                            for x in points[0::2]]
+                        points[1::2] = [
+                            stretch(dpy, spy, y, min=miny, max=maxy)
+                            for y in points[1::2]]
                     points[0::2] = [buhinx0 + x * scale_x
                                     for x in points[0::2]]
                     points[1::2] = [buhiny0 + y * scale_y
@@ -168,11 +184,13 @@ class Glyph(object):
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
                 if sttType == 32 and endType == 0 and ((y0 == y2 and x0 > x2) or y0 > y2):
                     x0, y0, x2, y2 = x2, y2, x0, y0
-                if endType == 0 and sttType in (0, 12, 22, 32) and 0 != abs(y0 - y2) >= x2 - x0 and \
-                   abs(x0 + (x2 - x0) * (y1 - y0) / (y2 - y0) - x1
-                       if abs(y0 - y2) > abs(x0 - x2) else
-                       y0 + (y2 - y0) * (x1 - x0) / (x2 - x0) - y1
-                       ) <= 5.0:
+                if endType == 0 and sttType in (0, 12, 22, 32) and \
+                        0 != abs(y0 - y2) >= x2 - x0 and \
+                        abs(
+                                x0 + (x2 - x0) * (y1 - y0) / (y2 - y0) - x1
+                                if abs(y0 - y2) > abs(x0 - x2) else
+                                y0 + (y2 - y0) * (x1 - x0) / (x2 - x0) - y1
+                        ) <= 5.0:
                     dir1 = cmp(x0, x2) * 3 + cmp(y0, y2)
                     k.append((
                         1,
@@ -187,20 +205,21 @@ class Glyph(object):
                     (dir1, dir2, sttType, endType),
                     x0, y0, x1, y1, x2, y2
                 ))
-            elif strokeType == "6" or strokeType == "7":
+            elif strokeType in ("6", "7"):
                 x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in r[3:11]]
                 if sttType == 32 and endType == 0 and ((y0 == y3 and x0 > x3) or y0 > y3):
                     x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
                 if endType == 0 and sttType in (0, 12, 22, 32) and \
-                    0 != abs(y0 - y3) >= x3 - x0 and max(
-                            (
-                                abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
-                                abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
-                            ) if abs(y0 - y3) > abs(x0 - x3) else (
-                                abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
-                                abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
-                            )
-                    ) <= 5.0:
+                        0 != abs(y0 - y3) >= x3 - x0 and \
+                        max(
+                                (
+                                    abs(x0 + (x3 - x0) * (y1 - y0) / (y3 - y0) - x1),
+                                    abs(x0 + (x3 - x0) * (y2 - y0) / (y3 - y0) - x2)
+                                ) if abs(y0 - y3) > abs(x0 - x3) else (
+                                    abs(y0 + (y3 - y0) * (x1 - x0) / (x3 - x0) - y1),
+                                    abs(y0 + (y3 - y0) * (x2 - x0) / (x3 - x0) - y2)
+                                )
+                        ) <= 5.0:
                     dir1 = cmp(x0, x3) * 3 + cmp(y0, y3)
                     k.append((
                         1,
@@ -215,7 +234,7 @@ class Glyph(object):
                     (dir1, dir2, sttType, endType),
                     x0, y0, x1, y1, x2, y2, x3, y3
                 ))
-            elif strokeType == "3" or strokeType == "4":
+            elif strokeType in ("3", "4"):
                 x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
                 dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
                 dir2 = cmp(x1, x2) * 3 + cmp(y1, y2)
