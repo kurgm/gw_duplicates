@@ -118,6 +118,44 @@ def dist_from_line(x0, y0, x1, y1, x, y):
     return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
 
 
+def get_kaku_info(line_data):
+    strokeType = line_data[0]
+    sttType = int(line_data[1])
+    endType = int(line_data[2])
+    if strokeType == "1":
+        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+        if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
+                (y0 == y1 and x0 > x1):
+            x0, y0, x1, y1 = x1, y1, x0, y0
+        return 1, (sttType if sttType != 2 else 0, endType), (x0, y0, x1, y1)
+    if strokeType == "2":
+        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
+        if sttType == 32 and endType == 0 and \
+                ((y0 == y2 and x0 > x2) or y0 > y2):
+            x0, y0, x2, y2 = x2, y2, x0, y0
+        if endType == 0 and sttType in (0, 12, 22, 32) and \
+                0 != abs(y0 - y2) >= x2 - x0 and \
+                dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
+            return 1, (sttType, 32), (x0, y0, x2, y2)
+        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2)
+    if strokeType in ("6", "7"):
+        x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in line_data[3:11]]
+        if sttType == 32 and endType == 0 and \
+                ((y0 == y3 and x0 > x3) or y0 > y3):
+            x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
+        if endType == 0 and sttType in (0, 12, 22, 32) and \
+                0 != abs(y0 - y3) >= x3 - x0 and \
+                dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
+                dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
+            return 1, (sttType, 32), (x0, y0, x3, y3)
+        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2, x3, y3)
+    if strokeType in ("3", "4"):
+        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
+        return 3, (sttType, endType), (x0, y0, x1, y1, x2, y2)
+
+    return None
+
+
 class Glyph(object):
 
     def __init__(self, name, rel, data):
@@ -142,19 +180,16 @@ class Glyph(object):
             splitrow = row.split(":")
             buhinname = splitrow[7].split("@")[0]
             b_buhins = dump[buhinname].getBuhin(dump)
-            buhinx0, buhiny0, buhinx1, buhiny1 = [
-                float(x) for x in splitrow[3:7]]
-            if b_buhins:
-                x_map = coord_mapper(buhinx0, buhinx1)
-                y_map = coord_mapper(buhiny0, buhiny1)
-                for b_buhinx0, b_buhiny0, b_buhinx1, b_buhiny1, b_buhinname in b_buhins:
-                    buhin.append((
-                        x_map(b_buhinx0), y_map(b_buhiny0),
-                        x_map(b_buhinx1), y_map(b_buhiny1),
-                        b_buhinname
-                    ))
-            else:
-                buhin.append((buhinx0, buhiny0, buhinx1, buhiny1, buhinname))
+            x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
+            if not b_buhins:
+                buhin.append((x0, y0, x1, y1, buhinname))
+                continue
+            x_map = coord_mapper(x0, x1)
+            y_map = coord_mapper(y0, y1)
+            for b_x0, b_y0, b_x1, b_y1, b_name in b_buhins:
+                buhin.append((
+                    x_map(b_x0), y_map(b_y0), x_map(b_x1), y_map(b_y1),
+                    b_name))
         buhin.sort(key=lambda x: x[4])
         return tuple(buhin)
 
@@ -167,105 +202,51 @@ class Glyph(object):
     def getKaku(self, dump):
         k = []
         for row in self.data:
-            r = row.split(":")
-            strokeType = r[0]
-            if strokeType == "99":
-                buhinname = r[7].split("@")[0]
-                b_kakus = dump[buhinname].getKaku(dump)
-                buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in r[3:7]]
-                dpx = float(r[1])
-                dpy = float(r[2])
-                if len(r) < 9:
-                    spx = spy = 0.0
-                else:
-                    spx = float(r[9])
-                    spy = float(r[10])
-                x_map = coord_mapper(buhinx0, buhinx1)
-                y_map = coord_mapper(buhiny0, buhiny1)
-                if not dpx == dpy == 0.0:
-                    if dpx > 100.0:
-                        dpx -= 200.0  # 任意点モード
-                    else:
-                        spx = spy = 0.0  # 中心点モード
-                    stretch_x = stretch_mapper(
-                        dpx, spx,
-                        [x for b_kaku in b_kakus for x in b_kaku[2::2]])
-                    stretch_y = stretch_mapper(
-                        dpy, spy,
-                        [y for b_kaku in b_kakus for y in b_kaku[3::2]])
-                    x_map = compose(x_map, stretch_x)
-                    y_map = compose(y_map, stretch_y)
-                for b_kaku in b_kakus:
-                    points = list(b_kaku[2:])
-                    points[0::2] = [x_map(x) for x in points[0::2]]
-                    points[1::2] = [y_map(y) for y in points[1::2]]
-                    k.append(b_kaku[0:2] + tuple(points))
+            line_data = row.split(":")
+            if line_data[0] != "99":
+                kaku_info = get_kaku_info(line_data)
+                if kaku_info is None:
+                    continue
+                kaku_type, shapes, points = kaku_info
+                dir1 = cmp(points[0], points[2]) * 3 + \
+                    cmp(points[1], points[3])
+                dir2 = cmp(points[-4], points[-2]) * 3 + \
+                    cmp(points[-3], points[-1])
+                dirs = (dir1,) if len(points) == 4 else (dir1, dir2)
+                kaku_sig = (kaku_type, dirs + shapes) + points
+                k.append(kaku_sig)
                 continue
-            sttType = int(r[1])
-            endType = int(r[2])
-            if strokeType == "1":
-                x0, y0, x1, y1 = [float(x) for x in r[3:7]]
-                if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
-                        (y0 == y1 and x0 > x1):
-                    x0, y0, x1, y1 = x1, y1, x0, y0
-                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
-                k.append((
-                    1,
-                    (dir1, sttType if sttType != 2 else 0, endType),
-                    x0, y0, x1, y1
-                ))
-            elif strokeType == "2":
-                x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
-                if sttType == 32 and endType == 0 and ((y0 == y2 and x0 > x2) or y0 > y2):
-                    x0, y0, x2, y2 = x2, y2, x0, y0
-                if endType == 0 and sttType in (0, 12, 22, 32) and \
-                        0 != abs(y0 - y2) >= x2 - x0 and \
-                        dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
-                    dir1 = cmp(x0, x2) * 3 + cmp(y0, y2)
-                    k.append((
-                        1,
-                        (dir1, sttType, 32),
-                        x0, y0, x2, y2
-                    ))
-                    continue
-                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
-                dir2 = cmp(x1, x2) * 3 + cmp(y1, y2)
-                k.append((
-                    2,
-                    (dir1, dir2, sttType, endType),
-                    x0, y0, x1, y1, x2, y2
-                ))
-            elif strokeType in ("6", "7"):
-                x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in r[3:11]]
-                if sttType == 32 and endType == 0 and ((y0 == y3 and x0 > x3) or y0 > y3):
-                    x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
-                if endType == 0 and sttType in (0, 12, 22, 32) and \
-                        0 != abs(y0 - y3) >= x3 - x0 and \
-                        dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
-                        dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
-                    dir1 = cmp(x0, x3) * 3 + cmp(y0, y3)
-                    k.append((
-                        1,
-                        (dir1, sttType, 32),
-                        x0, y0, x3, y3
-                    ))
-                    continue
-                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
-                dir2 = cmp(x2, x3) * 3 + cmp(y2, y3)
-                k.append((
-                    2,
-                    (dir1, dir2, sttType, endType),
-                    x0, y0, x1, y1, x2, y2, x3, y3
-                ))
-            elif strokeType in ("3", "4"):
-                x0, y0, x1, y1, x2, y2 = [float(x) for x in r[3:9]]
-                dir1 = cmp(x0, x1) * 3 + cmp(y0, y1)
-                dir2 = cmp(x1, x2) * 3 + cmp(y1, y2)
-                k.append((
-                    3,
-                    (dir1, dir2, sttType, endType),
-                    x0, y0, x1, y1, x2, y2
-                ))
+
+            buhinname = line_data[7].split("@")[0]
+            b_kakus = dump[buhinname].getKaku(dump)
+            x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+            dpx = float(line_data[1])
+            dpy = float(line_data[2])
+            if len(line_data) < 9:
+                spx = spy = 0.0
+            else:
+                spx = float(line_data[9])
+                spy = float(line_data[10])
+            x_map = coord_mapper(x0, x1)
+            y_map = coord_mapper(y0, y1)
+            if not dpx == dpy == 0.0:
+                if dpx > 100.0:
+                    dpx -= 200.0  # 任意点モード
+                else:
+                    spx = spy = 0.0  # 中心点モード
+                stretch_x = stretch_mapper(
+                    dpx, spx,
+                    [x for b_kaku in b_kakus for x in b_kaku[2::2]])
+                stretch_y = stretch_mapper(
+                    dpy, spy,
+                    [y for b_kaku in b_kakus for y in b_kaku[3::2]])
+                x_map = compose(x_map, stretch_x)
+                y_map = compose(y_map, stretch_y)
+            for b_kaku in b_kakus:
+                points = list(b_kaku[2:])
+                points[0::2] = [x_map(x) for x in points[0::2]]
+                points[1::2] = [y_map(y) for y in points[1::2]]
+                k.append(b_kaku[0:2] + tuple(points))
         k.sort()
         return tuple(k)
 
@@ -289,13 +270,13 @@ def getDump():
         timestamp = os.path.getmtime(DUMP_PATH)
 
         for line in dumpfile:
-            l = line[:-1].split("|")
-            if len(l) != 3:
+            split_line = line[:-1].split("|")
+            if len(split_line) != 3:
                 continue
-            l = [x.strip() for x in l]
-            glyph = Glyph(*l)
+            split_line = [x.strip() for x in split_line]
+            glyph = Glyph(*split_line)
             glyphlist.append(glyph)
-            dump[l[0]] = glyph
+            dump[split_line[0]] = glyph
     return glyphlist, dump, timestamp
 
 
@@ -306,7 +287,8 @@ def setXorMaskType(dump):
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
     neg_masktype = 0
     for m in re.finditer(
-            r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M):
+            r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
+            neg_src, re.M):
         gn = m.group(1)
         if gn:
             if gn in dump:
@@ -316,7 +298,8 @@ def setXorMaskType(dump):
 
 
 henka_re = re.compile(
-    r"-(?:[gtv]v?|[hmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$")
+    r"-(?:[gtv]v?|[hmi]|k[pv]?|us?|j[asv]?)?(\d{2})(?:-(?:var|itaiji)-\d{3})?$"
+)
 
 
 def main():
@@ -370,7 +353,8 @@ def main():
                     elif suffix == "09":
                         diflim[0] = 25.0
                         diflim[2] = 25.0
-                if all(abs(p1 - p2) <= lim for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
+                if all(abs(p1 - p2) <= lim
+                       for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
                     continue
                 if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
                         abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
@@ -387,7 +371,8 @@ def main():
             k2 = g2.getKaku(dump)
             for (K1, K2) in zip(k1, k2):
                 if all(abs(p1 - p2) <= 20.0
-                       for (p1, p2) in zip(K1[2:4] + K1[-2:], K2[2:4] + K2[-2:])):
+                       for (p1, p2) in zip(K1[2:4] + K1[-2:],
+                                           K2[2:4] + K2[-2:])):
                     continue
                 break
             else:
