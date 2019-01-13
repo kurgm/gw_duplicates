@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import codecs
+import collections
+import functools
 import itertools
 import json
 import logging
@@ -25,20 +27,69 @@ except NameError:
 
 logging.basicConfig(level=logging.DEBUG)
 
-buhin_stack = []
+
+def memoize_to(attr_name):
+    def _memoize_to(f):
+        @functools.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return getattr(self, attr_name)
+            except AttributeError:
+                pass
+            result = f(self, *args, **kwargs)
+            setattr(self, attr_name, result)
+            return result
+
+        return wrapper
+
+    return _memoize_to
 
 
-def stretch(dp, sp, p, min=12.0, max=188.0):
+def print_arg0_on_error(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception:
+            logging.error("An error occurred in %s(%r, ...)",
+                          f.__name__, args[0])
+            raise
+
+    return wrapper
+
+
+class CircularCallError(ValueError):
+    pass
+
+
+def check_circular_call_arg0(f):
+    callstack = []
+
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        if self in callstack:
+            raise CircularCallError(
+                "circularly called in '{0}'".format(self))
+        callstack.append(self)
+        try:
+            return f(self, *args, **kwargs)
+        finally:
+            callstack.pop()
+
+    return wrapper
+
+
+def stretch(dp, sp, p, pmin=12.0, pmax=188.0):
     if p < sp + 100.0:
-        p1 = min
-        p3 = min
+        p1 = pmin
+        p3 = pmin
         p2 = sp + 100.0
         p4 = dp + 100.0
     else:
         p1 = sp + 100.0
         p3 = dp + 100.0
-        p2 = max
-        p4 = max
+        p2 = pmax
+        p4 = pmax
     return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
 
 
@@ -48,15 +99,14 @@ class Glyph(object):
         self.name = name
         self.rel = rel if rel != "u3013" else None
         self.data = data.split("$")
-        self.buhin = None
-        self.kaku = None
 
     def __repr__(self):
         return "Glyph({0.name!r}, {0.rel!r}, {0.data!r})".format(self)
 
+    @memoize_to("buhin")
+    @print_arg0_on_error
+    @check_circular_call_arg0
     def getBuhin(self, dump):
-        if self.buhin is not None:
-            return self.buhin
         buhin = []
         for row in self.data:
             if row[0:2] == "0:":
@@ -66,18 +116,7 @@ class Glyph(object):
                 break
             splitrow = row.split(":")
             buhinname = splitrow[7].split("@")[0]
-            buhinglyph = dump.get(buhinname)
-            if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
-                buhin = []
-                logging.error(
-                    "'%s' was not found or has a quotation loop", buhinname)
-                logging.info("quotation stack: %r", buhin_stack)
-                break
-            buhin_stack.append(buhinglyph)
-            try:
-                b_buhins = buhinglyph.getBuhin(dump)
-            finally:
-                buhin_stack.pop()
+            b_buhins = dump[buhinname].getBuhin(dump)
             buhinx0, buhiny0, buhinx1, buhiny1 = [
                 float(x) for x in splitrow[3:7]]
             if b_buhins:
@@ -94,33 +133,22 @@ class Glyph(object):
             else:
                 buhin.append((buhinx0, buhiny0, buhinx1, buhiny1, buhinname))
         buhin.sort(key=lambda x: x[4])
-        self.buhin = tuple(buhin)
-        return self.buhin
+        return tuple(buhin)
 
     def getBuhinHash(self, dump):
         return tuple(b[4] for b in self.getBuhin(dump))
 
+    @memoize_to("kaku")
+    @print_arg0_on_error
+    @check_circular_call_arg0
     def getKaku(self, dump):
-        if self.kaku is not None:
-            return self.kaku
         k = []
         for row in self.data:
             r = row.split(":")
             strokeType = r[0]
             if strokeType == "99":
                 buhinname = r[7].split("@")[0]
-                buhinglyph = dump.get(buhinname)
-                if not buhinglyph or self is buhinglyph or buhinglyph in buhin_stack:
-                    k = []
-                    logging.error(
-                        "'%s' was not found or has a quotation loop", buhinname)
-                    logging.info("quotation stack: %r", buhin_stack)
-                    break
-                buhin_stack.append(buhinglyph)
-                try:
-                    b_kakus = buhinglyph.getKaku(dump)
-                finally:
-                    buhin_stack.pop()
+                b_kakus = dump[buhinname].getKaku(dump)
                 buhinx0, buhiny0, buhinx1, buhiny1 = [float(x) for x in r[3:7]]
                 dpx = float(r[1])
                 dpy = float(r[2])
@@ -156,10 +184,10 @@ class Glyph(object):
                     points = list(b_kaku[2:])
                     if isStretched:
                         points[0::2] = [
-                            stretch(dpx, spx, x, min=minx, max=maxx)
+                            stretch(dpx, spx, x, pmin=minx, pmax=maxx)
                             for x in points[0::2]]
                         points[1::2] = [
-                            stretch(dpy, spy, y, min=miny, max=maxy)
+                            stretch(dpy, spy, y, pmin=miny, pmax=maxy)
                             for y in points[1::2]]
                     points[0::2] = [buhinx0 + x * scale_x
                                     for x in points[0::2]]
@@ -244,8 +272,7 @@ class Glyph(object):
                     x0, y0, x1, y1, x2, y2
                 ))
         k.sort()
-        self.kaku = tuple(k)
-        return self.kaku
+        return tuple(k)
 
     def getKakuHash(self, dump):
         return tuple(k[0:2] for k in self.getKaku(dump))
@@ -300,8 +327,8 @@ def main():
     glyphlist, dump, timestamp = getDump()
     setXorMaskType(dump)
 
-    glyphsByBuhin = {}
-    glyphsByKaku = {}
+    glyphsByBuhin = collections.defaultdict(list)
+    glyphsByKaku = collections.defaultdict(list)
 
     for glyph in glyphlist:
         if "_" in glyph.name or glyph.isAlias():
@@ -309,10 +336,10 @@ def main():
         try:
             bh = glyph.getBuhinHash(dump)
             if bh:
-                glyphsByBuhin.setdefault(bh, []).append(glyph)
+                glyphsByBuhin[bh].append(glyph)
             kh = glyph.getKakuHash(dump)
             if kh:
-                glyphsByKaku.setdefault(kh, []).append(glyph)
+                glyphsByKaku[kh].append(glyph)
         except Exception:
             logging.exception('Error in "%s"', glyph.name)
 
