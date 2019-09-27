@@ -1,13 +1,29 @@
 import * as React from "react";
 
-export interface ICellProps {
+const uxxxx2char = (uxxxx: string) => {
+  const cp = parseInt(uxxxx.substring(1), 16);
+  if (cp < 0x10000) {
+    return String.fromCharCode(cp);
+  }
+  const cp1 = 0xD800 | ((cp - 0x10000) >> 10);
+  const cp2 = 0xDC00 | ((cp - 0x10000) & 0x3ff);
+  return String.fromCharCode(cp1, cp2);
+};
+
+const qs = (obj: { [key: string]: string }) => {
+  return Object.keys(obj).map((key) => (
+    encodeURIComponent(key) + "=" + encodeURIComponent(obj[key])
+  )).join("&");
+};
+
+export interface CellProps {
   name: string;
   related: string | null;
   oppositeName: string;
   oppositeRelated: string | null;
 }
 
-export class Cell extends React.Component<ICellProps> {
+export class Cell extends React.Component<CellProps> {
   public render() {
     const url = `https://glyphwiki.org/wiki/${this.props.name}`;
     return (
@@ -52,21 +68,3 @@ export class Cell extends React.Component<ICellProps> {
     );
   }
 }
-
-const uxxxx2char = (uxxxx: string) => {
-  const cp = parseInt(uxxxx.substring(1), 16);
-  if (cp < 0x10000) {
-    return String.fromCharCode(cp);
-  }
-  // tslint:disable:no-bitwise
-  const cp1 = 0xD800 | ((cp - 0x10000) >> 10);
-  const cp2 = 0xDC00 | ((cp - 0x10000) & 0x3ff);
-  // tslint:enable:no-bitwise
-  return String.fromCharCode(cp1, cp2);
-};
-
-const qs = (obj: { [key: string]: string }) => {
-  return Object.keys(obj).map((key) => (
-    encodeURIComponent(key) + "=" + encodeURIComponent(obj[key])
-  )).join("&");
-};

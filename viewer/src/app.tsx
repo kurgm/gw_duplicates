@@ -5,14 +5,30 @@ import axios from "axios";
 
 import { IDupEntry, Table } from "./table";
 
-interface IAppState {
+const text2uxxx = (str: string) => {
+  const cp = [];
+  for (let i = 0; i < str.length; i++) {
+    const x = str.charCodeAt(i);
+    if (0xD800 <= x && x <= 0xDBFF) {
+      const y = str.charCodeAt(++i);
+      if (!isNaN(y)) {
+        cp.push(0x10000 + (((x & 0x3FF) << 10) | (y & 0x3FF)));
+        continue;
+      }
+    }
+    cp.push(x);
+  }
+  return cp.map((c) => "u" + ("000" + c.toString(16)).slice(-4)).join("-");
+};
+
+interface AppState {
   data: IDupEntry[];
   query: RegExp | null;
   timestamp: string | null;
 }
 
-class App extends React.Component<{}, IAppState> {
-  public state: IAppState = {
+class App extends React.Component<{}, AppState> {
+  public state: AppState = {
     data: [],
     query: null,
     timestamp: null,
@@ -57,7 +73,7 @@ class App extends React.Component<{}, IAppState> {
               this.state.data.length !== shownData.length &&
                 `中 ${shownData.length} 件を表示`
             }）
-            </small>
+          </small>
         </div>
         <div className="search">
           <input
@@ -88,7 +104,7 @@ class App extends React.Component<{}, IAppState> {
     let query;
     if (obj === "") {
       query = null;
-    } else if (/^[^\x00-\xFF]+$/.test(obj)) {
+    } else if (/^[^\0-\xFF]+$/.test(obj)) {
       query = new RegExp("(?:^|-)" + text2uxxx(obj) + "(?:-|$)");
     } else {
       try {
@@ -102,22 +118,5 @@ class App extends React.Component<{}, IAppState> {
     this.setState({ query });
   }
 }
-
-const text2uxxx = (str: string) => {
-  const cp = [];
-  for (let i = 0; i < str.length; i++) {
-    const x = str.charCodeAt(i);
-    if (0xD800 <= x && x <= 0xDBFF) {
-      const y = str.charCodeAt(++i);
-      if (!isNaN(y)) {
-        // tslint:disable-next-line:no-bitwise
-        cp.push(0x10000 + (((x & 0x3FF) << 10) | (y & 0x3FF)));
-        continue;
-      }
-    }
-    cp.push(x);
-  }
-  return cp.map((c) => "u" + ("000" + c.toString(16)).slice(-4)).join("-");
-};
 
 ReactDOM.render(<App />, document.getElementById("app"));

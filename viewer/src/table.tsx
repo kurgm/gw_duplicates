@@ -7,11 +7,11 @@ import { Cell } from "./cell";
 // [name1, name2, kanrenji1, kanrenji2, num]
 export type IDupEntry = [string, string, string | null, string | null, number];
 
-export interface ITableProps {
+export interface TableProps {
   data: IDupEntry[];
 }
 
-export class Table extends React.Component<ITableProps> {
+export class Table extends React.Component<TableProps> {
   public render() {
     return (
       <WindowScroller>
