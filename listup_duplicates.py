@@ -226,11 +226,12 @@ class Glyph(object):
             x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
             dpx = float(line_data[1])
             dpy = float(line_data[2])
-            if len(line_data) < 9:
-                spx = spy = 0.0
-            else:
+            spx = spy = 0.0
+            try:
                 spx = float(line_data[9])
                 spy = float(line_data[10])
+            except IndexError:
+                pass
             x_map = coord_mapper(x0, x1)
             y_map = coord_mapper(y0, y1)
             if not dpx == dpy == 0.0:
