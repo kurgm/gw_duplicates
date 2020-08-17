@@ -23,48 +23,46 @@ export interface CellProps {
   oppositeRelated: string | null;
 }
 
-export class Cell extends React.Component<CellProps> {
-  public render() {
-    const url = `https://glyphwiki.org/wiki/${this.props.name}`;
-    return (
-      <div>
-        <a href={url} target="_new">
-          <img
-            src={`https://glyphwiki.org/glyph/${this.props.name}.svg`}
-            alt={this.props.name}
-            className="thumb"
-          />
-        </a>
-        <a href={url} target="_new">{this.props.name}</a>
-        {this.props.related && `(${uxxxx2char(this.props.related)})`}
-        <div className="filler"></div>
-        <a
-          href={url + "?" + qs({
-            action: "preview",
-            related: this.props.related || "u3013",
-            summary: this.props.oppositeName,
-            textbox: `[[${this.props.oppositeName}]]`,
-          })}
-          className="edit-link"
-          target="_new"
-          title="このグリフを、もう片方のグリフを参照するエイリアスに変更します。"
-        >
-          エイリアス化
-        </a>
-        &nbsp;
-        <a
-          href={url + "?" + qs({
-            action: "preview",
-            summary: this.props.oppositeName,
-            textbox: "0:0:0:0",
-          })}
-          className="edit-link"
-          target="_new"
-          title="このグリフを白紙化します。"
-        >
-          白紙化
-        </a>
-      </div>
-    );
-  }
-}
+export const Cell: React.FC<CellProps> = (props: CellProps) => {
+  const url = `https://glyphwiki.org/wiki/${props.name}`;
+  return (
+    <div>
+      <a href={url} target="_new">
+        <img
+          src={`https://glyphwiki.org/glyph/${props.name}.svg`}
+          alt={props.name}
+          className="thumb"
+        />
+      </a>
+      <a href={url} target="_new">{props.name}</a>
+      {props.related && `(${uxxxx2char(props.related)})`}
+      <div className="filler"></div>
+      <a
+        href={url + "?" + qs({
+          action: "preview",
+          related: props.related || "u3013",
+          summary: props.oppositeName,
+          textbox: `[[${props.oppositeName}]]`,
+        })}
+        className="edit-link"
+        target="_new"
+        title="このグリフを、もう片方のグリフを参照するエイリアスに変更します。"
+      >
+        エイリアス化
+      </a>
+      &nbsp;
+      <a
+        href={url + "?" + qs({
+          action: "preview",
+          summary: props.oppositeName,
+          textbox: "0:0:0:0",
+        })}
+        className="edit-link"
+        target="_new"
+        title="このグリフを白紙化します。"
+      >
+        白紙化
+      </a>
+    </div>
+  );
+};

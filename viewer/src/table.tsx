@@ -11,28 +11,9 @@ export interface TableProps {
   data: IDupEntry[];
 }
 
-export class Table extends React.Component<TableProps> {
-  public render() {
-    return (
-      <WindowScroller>
-        {({ height, width, isScrolling, onChildScroll, scrollTop }) => (
-          <List
-            autoHeight
-            height={height}
-            isScrolling={isScrolling}
-            onScroll={onChildScroll}
-            rowCount={this.props.data.length}
-            rowHeight={56}
-            rowRenderer={this.rowRenderer}
-            scrollTop={scrollTop}
-            width={width}
-          />
-        )}
-      </WindowScroller>
-    );
-  }
-  private rowRenderer: ListRowRenderer = ({ index, key, style }) => {
-    const entry = this.props.data[index];
+export const Table: React.FC<TableProps> = (props: TableProps) => {
+  const rowRenderer: ListRowRenderer = React.useCallback(({ index, key, style }) => {
+    const entry = props.data[index];
     return (
       <div key={key} style={style} className={`table-row ${index % 2 === 1 ? "" : "gray"}`}>
         <div>{entry[4] + 1}.&nbsp;</div>
@@ -46,5 +27,24 @@ export class Table extends React.Component<TableProps> {
         />
       </div>
     );
-  }
-}
+  }, [props.data]);
+
+  return (
+    <WindowScroller>
+      {({ height, width, isScrolling, onChildScroll, scrollTop }) => (
+        <List
+          autoHeight
+          height={height}
+          isScrolling={isScrolling}
+          onScroll={onChildScroll}
+          rowCount={props.data.length}
+          rowHeight={56}
+          rowRenderer={rowRenderer}
+          scrollTop={scrollTop}
+          width={width}
+        />
+      )}
+    </WindowScroller>
+  );
+};
+

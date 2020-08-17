@@ -25,13 +25,15 @@ interface AppState {
   data: IDupEntry[];
   query: RegExp | null;
   timestamp: string | null;
+  errored: boolean;
 }
 
-class App extends React.Component<{}, AppState> {
+class App extends React.Component<Record<string, never>, AppState> {
   public state: AppState = {
     data: [],
     query: null,
     timestamp: null,
+    errored: false,
   };
 
   private searchInput = React.createRef<HTMLInputElement>();
@@ -44,7 +46,7 @@ class App extends React.Component<{}, AppState> {
           fontSize: "24px",
           textAlign: "center",
         }}>
-          読み込み中...
+          {this.state.errored ? "読み込みエラー" : "読み込み中..."}
         </div>
       );
     }
@@ -90,11 +92,20 @@ class App extends React.Component<{}, AppState> {
 
   public componentDidMount() {
     axios.get("./duplicates.json").then((json) => {
-      const data: IDupEntry[] = json.data.buhin.concat(json.data.kaku);
+      const jsonData = json.data as {
+        buhin: IDupEntry[];
+        kaku: IDupEntry[];
+        timestamp: number;
+      };
+      const data = jsonData.buhin.concat(jsonData.kaku);
       data.forEach((row, i) => { row[4] = i; });
       this.setState({
         data,
-        timestamp: new Date(json.data.timestamp * 1000).toLocaleString(),
+        timestamp: new Date(jsonData.timestamp * 1000).toLocaleString(),
+      });
+    }).catch(() => {
+      this.setState({
+        errored: true,
       });
     });
   }
@@ -110,7 +121,9 @@ class App extends React.Component<{}, AppState> {
       try {
         query = new RegExp(obj);
       } catch (e) {
-        this.searchInput.current!.setCustomValidity("正規表現エラー: " + e.message);
+        if (e instanceof SyntaxError) {
+          this.searchInput.current!.setCustomValidity(`正規表現エラー: ${e.message}`);
+        }
         return;
       }
     }
