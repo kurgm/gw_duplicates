@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
-from __future__ import division
-from __future__ import unicode_literals
-
-import codecs
 import collections
 import functools
 import itertools
@@ -12,17 +7,11 @@ import json
 import logging
 import os
 import re
+from urllib.request import urlopen
 
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
 
-try:
-    cmp
-except NameError:
-    def cmp(a, b):
-        return (a > b) - (a < b)
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -269,7 +258,7 @@ def getDump():
     glyphlist = []
     dump = {}
     DUMP_PATH = "dump_newest_only.txt"
-    with codecs.open(DUMP_PATH, "r", encoding="utf-8") as dumpfile:
+    with open(DUMP_PATH, "r", encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
         timestamp = os.path.getmtime(DUMP_PATH)
