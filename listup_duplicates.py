@@ -275,7 +275,7 @@ def getDump():
 
 
 def setXorMaskType(dump):
-    neg_url = "http://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
+    neg_url = "https://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
     neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
 
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
