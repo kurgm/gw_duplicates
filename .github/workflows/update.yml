@@ -46,7 +46,7 @@ jobs:
       - run: mv duplicates.json viewer/dist/
 
       - name: Deploy
-        if: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/master' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
