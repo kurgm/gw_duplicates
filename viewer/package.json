@@ -2,7 +2,6 @@
   "name": "gw_duplicates-viewer",
   "version": "1.0.0",
   "description": "Viewer for gw_duplicates",
-  "main": "index.js",
   "scripts": {
     "build": "parcel build src/index.pug --public-url ./",
     "watch": "parcel src/index.pug",
@@ -12,21 +11,21 @@
   "author": "Kurogoma",
   "license": "MIT",
   "devDependencies": {
-    "@types/react": "^16.9.46",
-    "@types/react-dom": "^16.9.8",
+    "@types/react": "^16.14.2",
+    "@types/react-dom": "^16.9.10",
     "@types/react-virtualized": "^9.21.10",
-    "@typescript-eslint/eslint-plugin": "^3.9.0",
-    "@typescript-eslint/parser": "^3.9.0",
+    "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "@typescript-eslint/parser": "^4.12.0",
     "eslint": "^7.7.0",
     "eslint-plugin-react": "^7.20.6",
-    "parcel-bundler": "^1.12.4",
+    "parcel": "^2.0.0-beta.1",
     "pug": "^3.0.0",
-    "typescript": "^3.9.7"
+    "typescript": "^4.1.3"
   },
   "dependencies": {
-    "axios": "^0.19.2",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "axios": "^0.21.1",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
     "react-virtualized": "^9.22.2"
   }
 }
