@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: '14'
 
-      - run: bash get_dump.sh
+      - run: bash getdump.sh
       - run: python listup_duplicates.py
 
       - run: |
