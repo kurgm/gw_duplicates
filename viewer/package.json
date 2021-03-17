@@ -11,30 +11,22 @@
   "author": "Kurogoma",
   "license": "MIT",
   "devDependencies": {
-    "@parcel/optimizer-cssnano": "^2.0.0-nightly.598",
-    "@parcel/optimizer-htmlnano": "^2.0.0-nightly.598",
-    "@parcel/packager-css": "^2.0.0-nightly.598",
-    "@parcel/packager-html": "^2.0.0-nightly.598",
-    "@parcel/transformer-css": "^2.0.0-nightly.598",
-    "@parcel/transformer-html": "^2.0.0-nightly.598",
-    "@parcel/transformer-postcss": "^2.0.0-nightly.598",
-    "@parcel/transformer-posthtml": "^2.0.0-nightly.598",
-    "@parcel/transformer-pug": "^2.0.0-nightly.598",
-    "@types/react": "^16.14.2",
-    "@types/react-dom": "^16.9.10",
-    "@types/react-virtualized": "^9.21.10",
-    "@typescript-eslint/eslint-plugin": "^4.12.0",
-    "@typescript-eslint/parser": "^4.12.0",
-    "eslint": "^7.7.0",
-    "eslint-plugin-react": "^7.20.6",
-    "parcel": "^2.0.0-beta.1",
-    "pug": "^3.0.0",
-    "typescript": "^4.1.3"
+    "@parcel/transformer-pug": "^2.0.0-beta.2",
+    "@types/react": "^16.14.5",
+    "@types/react-dom": "^16.9.11",
+    "@types/react-virtualized": "^9.21.11",
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "eslint": "^7.22.0",
+    "eslint-plugin-react": "^7.22.0",
+    "parcel": "^2.0.0-beta.2",
+    "pug": "^3.0.2",
+    "typescript": "^4.2.3"
   },
   "dependencies": {
     "axios": "^0.21.1",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
-    "react-virtualized": "^9.22.2"
+    "react-virtualized": "^9.22.3"
   }
 }
