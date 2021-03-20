@@ -11,7 +11,7 @@
   "author": "Kurogoma",
   "license": "MIT",
   "devDependencies": {
-    "@parcel/transformer-pug": "^2.0.0-beta.2",
+    "@parcel/transformer-pug": "next",
     "@types/react": "^16.14.5",
     "@types/react-dom": "^16.9.11",
     "@types/react-virtualized": "^9.21.11",
@@ -19,7 +19,7 @@
     "@typescript-eslint/parser": "^4.18.0",
     "eslint": "^7.22.0",
     "eslint-plugin-react": "^7.22.0",
-    "parcel": "^2.0.0-beta.2",
+    "parcel": "next",
     "pug": "^3.0.2",
     "typescript": "^4.2.3"
   },
