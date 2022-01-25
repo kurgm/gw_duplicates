@@ -11,19 +11,19 @@
   "author": "Kurogoma",
   "license": "MIT",
   "devDependencies": {
-    "@parcel/transformer-pug": "^2.0.1",
+    "@parcel/transformer-pug": "^2.2.1",
     "@types/react": "^16.14.21",
     "@types/react-dom": "^16.9.14",
     "@types/react-virtualized": "^9.21.11",
-    "@typescript-eslint/eslint-plugin": "^5.8.0",
-    "@typescript-eslint/parser": "^5.8.0",
-    "eslint": "^8.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.1",
+    "eslint": "^8.7.0",
     "eslint-plugin-react": "^7.28.0",
-    "parcel": "^2.0.1",
-    "typescript": "^4.5.4"
+    "parcel": "^2.2.1",
+    "typescript": "^4.5.5"
   },
   "dependencies": {
-    "axios": "^0.24.0",
+    "axios": "^0.25.0",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
     "react-virtualized": "^9.22.3"
