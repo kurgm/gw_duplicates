@@ -8,17 +8,18 @@ import json
 import logging
 import os
 import re
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
 from urllib.request import urlopen
 
 
-def cmp(a, b):
+def cmp(a: float, b: float):
     return (a > b) - (a < b)
 
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def memoize_to(attr_name):
+def memoize_to(attr_name: str):
     def _memoize_to(f):
         @functools.wraps(f)
         def wrapper(self, *args, **kwargs):
@@ -69,12 +70,17 @@ def check_circular_call_arg0(f):
     return wrapper
 
 
-def coord_mapper(bp0, bp1):
+FloatMapper = Callable[[float], float]
+
+
+def coord_mapper(bp0: float, bp1: float) -> FloatMapper:
     scale = (bp1 - bp0) / 200.0
     return lambda p: bp0 + p * scale
 
 
-def stretch(dp, sp, p, pmin=12.0, pmax=188.0):
+def stretch(
+        dp: float, sp: float, p: float,
+        pmin: float = 12.0, pmax: float = 188.0):
     if p < sp + 100.0:
         p1 = pmin
         p3 = pmin
@@ -88,7 +94,8 @@ def stretch(dp, sp, p, pmin=12.0, pmax=188.0):
     return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
 
 
-def stretch_mapper(dp, sp, coords=[]):
+def stretch_mapper(dp: float, sp: float, coords: List[float] = []) -> \
+        FloatMapper:
     if coords:
         pmin = min(coords)
         pmax = max(coords)
@@ -98,17 +105,24 @@ def stretch_mapper(dp, sp, coords=[]):
     return lambda p: stretch(dp, sp, p, pmin, pmax)
 
 
-def compose(f, g):
+T = TypeVar("T")
+U = TypeVar("U")
+R = TypeVar("R")
+
+
+def compose(f: Callable[[U], R], g: Callable[[T], U]) -> Callable[[T], R]:
     return lambda *args: f(g(*args))
 
 
-def dist_from_line(x0, y0, x1, y1, x, y):
+def dist_from_line(
+        x0: float, y0: float, x1: float, y1: float, x: float, y: float):
     if abs(y0 - y1) > abs(x0 - x1):
         return abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0) - x)
     return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
 
 
-def get_kaku_info(line_data):
+def get_kaku_info(line_data: List[str]) -> \
+        Optional[Tuple[int, Tuple[int, int], Tuple[float, ...]]]:
     strokeType = line_data[0]
     sttType = int(line_data[1])
     endType = int(line_data[2])
@@ -150,9 +164,19 @@ def get_kaku_info(line_data):
     return None
 
 
+Dump = Dict[str, "Glyph"]
+
+BuhinElem = Tuple[float, float, float, float, str]
+BuhinHash = Tuple[str, ...]
+
+KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
+KakuHash0 = Tuple[int, Tuple[int, ...]]
+KakuHash = Tuple[KakuHash0, ...]
+
+
 class Glyph(object):
 
-    def __init__(self, name, rel, data):
+    def __init__(self, name: str, rel: str, data: str):
         self.name = name
         self.rel = rel if rel != "u3013" else None
         self.data = data.split("$")
@@ -163,8 +187,8 @@ class Glyph(object):
     @memoize_to("buhin")
     @print_arg0_on_error
     @check_circular_call_arg0
-    def getBuhin(self, dump):
-        buhin = []
+    def getBuhin(self, dump: Dump):
+        buhin: List[BuhinElem] = []
         for row in self.data:
             splitrow = row.split(":")
             if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
@@ -187,14 +211,14 @@ class Glyph(object):
         buhin.sort(key=lambda x: x[4])
         return tuple(buhin)
 
-    def getBuhinHash(self, dump):
+    def getBuhinHash(self, dump: Dump) -> BuhinHash:
         return tuple(b[4] for b in self.getBuhin(dump))
 
     @memoize_to("kaku")
     @print_arg0_on_error
     @check_circular_call_arg0
-    def getKaku(self, dump):
-        k = []
+    def getKaku(self, dump: Dump):
+        k: List[KakuElem] = []
         for row in self.data:
             line_data = row.split(":")
             if line_data[0] != "99":
@@ -231,22 +255,26 @@ class Glyph(object):
                     spx = spy = 0.0  # 中心点モード
                 stretch_x = stretch_mapper(
                     dpx, spx,
-                    [x for b_kaku in b_kakus for x in b_kaku[2::2]])
+                    [x for b_kaku in b_kakus for x in cast(
+                        Tuple[float, ...], b_kaku[2::2])]
+                )
                 stretch_y = stretch_mapper(
                     dpy, spy,
-                    [y for b_kaku in b_kakus for y in b_kaku[3::2]])
+                    [y for b_kaku in b_kakus for y in cast(
+                        Tuple[float, ...], b_kaku[3::2])]
+                )
                 x_map = compose(x_map, stretch_x)
                 y_map = compose(y_map, stretch_y)
             for b_kaku in b_kakus:
-                points = list(b_kaku[2:])
+                points = list(cast(Tuple[float], b_kaku[2:]))
                 points[0::2] = [x_map(x) for x in points[0::2]]
                 points[1::2] = [y_map(y) for y in points[1::2]]
                 k.append(b_kaku[0:2] + tuple(points))
         k.sort()
         return tuple(k)
 
-    def getKakuHash(self, dump):
-        return tuple(k[0:2] for k in self.getKaku(dump))
+    def getKakuHash(self, dump: Dump) -> KakuHash:
+        return tuple(cast(KakuHash0, k[0:2]) for k in self.getKaku(dump))
 
     def isAlias(self):
         return len(self.data) == 1 and \
@@ -256,8 +284,8 @@ class Glyph(object):
 
 
 def getDump(path: str):
-    glyphlist = []
-    dump = {}
+    glyphlist: List[Glyph] = []
+    dump: Dump = {}
     timestamp = os.path.getmtime(path)
     with open(path, "r", encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
@@ -274,7 +302,7 @@ def getDump(path: str):
     return glyphlist, dump, timestamp
 
 
-def setXorMaskType(dump):
+def setXorMaskType(dump: Dump):
     neg_url = "https://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
     neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
 
@@ -309,8 +337,8 @@ def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
     glyphlist, dump, timestamp = getDump(dump_path)
     setXorMaskType(dump)
 
-    glyphsByBuhin = collections.defaultdict(list)
-    glyphsByKaku = collections.defaultdict(list)
+    glyphsByBuhin: Dict[BuhinHash, List[Glyph]] = collections.defaultdict(list)
+    glyphsByKaku: Dict[KakuHash, List[Glyph]] = collections.defaultdict(list)
 
     for glyph in glyphlist:
         if "_" in glyph.name or glyph.isAlias():
@@ -373,9 +401,9 @@ def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
             k1 = g1.getKaku(dump)
             k2 = g2.getKaku(dump)
             for (K1, K2) in zip(k1, k2):
-                if all(abs(p1 - p2) <= 20.0
-                       for (p1, p2) in zip(K1[2:4] + K1[-2:],
-                                           K2[2:4] + K2[-2:])):
+                if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(
+                        cast(Tuple[float, ...], K1[2:4] + K1[-2:]),
+                        cast(Tuple[float, ...], K2[2:4] + K2[-2:]))):
                     continue
                 break
             else:
