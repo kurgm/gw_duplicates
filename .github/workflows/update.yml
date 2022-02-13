@@ -46,6 +46,6 @@ jobs:
             --header 'accept: application/vnd.github.v3+json' \
             --header 'content-type: application/json' \
             --data-binary @- \
-            --fail
+            --fail > /dev/null
         env:
           GIST_ID: cc8ec3b2d9a1cc63b39c8663328edfc6
