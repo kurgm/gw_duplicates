@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import collections
 import functools
 import itertools
@@ -254,14 +255,13 @@ class Glyph(object):
     xorMaskType = 0
 
 
-def getDump():
+def getDump(path: str):
     glyphlist = []
     dump = {}
-    DUMP_PATH = "dump_newest_only.txt"
-    with open(DUMP_PATH, "r", encoding="utf-8") as dumpfile:
+    timestamp = os.path.getmtime(path)
+    with open(path, "r", encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
-        timestamp = os.path.getmtime(DUMP_PATH)
 
         for line in dumpfile:
             split_line = line[:-1].split("|")
@@ -301,8 +301,12 @@ henka_re = re.compile(
 )
 
 
-def main():
-    glyphlist, dump, timestamp = getDump()
+DEFAULT_DUMP_PATH = "dump_newest_only.txt"
+DEFAULT_OUT_PATH = "duplicates.json"
+
+
+def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
+    glyphlist, dump, timestamp = getDump(dump_path)
     setXorMaskType(dump)
 
     glyphsByBuhin = collections.defaultdict(list)
@@ -379,8 +383,13 @@ def main():
                 if r not in result["buhin"]:
                     result["kaku"].append(r)
 
-    json.dump(result, open("duplicates.json", "w"), separators=(",", ":"))
+    with open(out_path, "w") as outfile:
+        json.dump(result, outfile, separators=(",", ":"))
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out_path", "-o", default=DEFAULT_OUT_PATH)
+    parser.add_argument("dump_path", nargs="?", default=DEFAULT_DUMP_PATH)
+    args = parser.parse_args()
+    main(args.dump_path, args.out_path)
