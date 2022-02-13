@@ -7,7 +7,7 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ master ]
-    paths-ignore: [ viewer ]
+    paths-ignore: [ viewer/** ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -37,7 +37,15 @@ jobs:
 
       - name: Upload to Gist
         run: |
-          gh auth login --with-token <<< '${{ secrets.GIST_ACCESS_TOKEN }}'
-          gh gist edit '${{ env.GIST_ID }}' duplicates.json
+          jq --raw-input --compact-output \
+            '{ "files": { "duplicates.json": { "content": . } } }' \
+            duplicates.json |
+          curl --request PATCH \
+            --url https://api.github.com/gists/${{ env.GIST_ID }} \
+            --header 'authorization: token ${{ secrets.GIST_ACCESS_TOKEN }}' \
+            --header 'accept: application/vnd.github.v3+json' \
+            --header 'content-type: application/json' \
+            --data-binary @- \
+            --fail
         env:
           GIST_ID: cc8ec3b2d9a1cc63b39c8663328edfc6

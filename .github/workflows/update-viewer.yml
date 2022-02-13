@@ -3,7 +3,7 @@ name: Update viewer
 on:
   push:
     branches: [ master ]
-    paths: [ viewer ]
+    paths: [ viewer/** ]
 
 jobs:
   update-viewer:
