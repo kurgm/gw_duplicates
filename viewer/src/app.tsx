@@ -5,6 +5,8 @@ import axios from "axios";
 
 import { IDupEntry, Table } from "./table";
 
+const jsonUrl = "https://gist.githubusercontent.com/kurgm/cc8ec3b2d9a1cc63b39c8663328edfc6/raw/duplicates.json";
+
 const text2uxxx = (str: string) => {
   const cp = [];
   for (let i = 0; i < str.length; i++) {
@@ -91,7 +93,7 @@ class App extends React.Component<Record<string, never>, AppState> {
   }
 
   public componentDidMount() {
-    axios.get("./duplicates.json").then((json) => {
+    axios.get(jsonUrl).then((json) => {
       const jsonData = json.data as {
         buhin: IDupEntry[];
         kaku: IDupEntry[];
