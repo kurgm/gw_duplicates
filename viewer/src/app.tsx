@@ -1,8 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
-import axios from "axios";
-
 import { IDupEntry, Table } from "./table";
 
 const jsonUrl = "https://gist.githubusercontent.com/kurgm/cc8ec3b2d9a1cc63b39c8663328edfc6/raw/duplicates.json";
@@ -93,12 +91,16 @@ class App extends React.Component<Record<string, never>, AppState> {
   }
 
   public componentDidMount() {
-    axios.get(jsonUrl).then((json) => {
-      const jsonData = json.data as {
-        buhin: IDupEntry[];
-        kaku: IDupEntry[];
-        timestamp: number;
-      };
+    fetch(jsonUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      return response.json();
+    }).then((jsonData: {
+      buhin: IDupEntry[];
+      kaku: IDupEntry[];
+      timestamp: number;
+    }) => {
       const data = jsonData.buhin.concat(jsonData.kaku);
       data.forEach((row, i) => { row[4] = i; });
       this.setState({
