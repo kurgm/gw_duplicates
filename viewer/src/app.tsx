@@ -21,76 +21,18 @@ const text2uxxx = (str: string) => {
   return cp.map((c) => "u" + ("000" + c.toString(16)).slice(-4)).join("-");
 };
 
-interface AppState {
-  data: IDupEntry[];
-  query: RegExp | null;
-  timestamp: string | null;
-  errored: boolean;
-}
-
-class App extends React.Component<Record<string, never>, AppState> {
-  public state: AppState = {
+const App: React.FC<Record<string, never>> = () => {
+  const [{ data, timestamp }, setDataTimestamp] = React.useState<{
+    data: IDupEntry[];
+    timestamp: string | null;
+  }>({
     data: [],
-    query: null,
     timestamp: null,
-    errored: false,
-  };
+  });
+  const [query, setQuery] = React.useState<RegExp | null>(null);
+  const [errored, setErrored] = React.useState(false);
 
-  private searchInput = React.createRef<HTMLInputElement>();
-
-  public render() {
-    if (!this.state.timestamp) {
-      return (
-        <div style={{
-          color: "gray",
-          fontSize: "24px",
-          textAlign: "center",
-        }}>
-          {this.state.errored ? "読み込みエラー" : "読み込み中..."}
-        </div>
-      );
-    }
-    const shownData = (!this.state.query)
-      ? this.state.data
-      : this.state.data.filter((entry) => {
-        if (this.state.query!.test(entry[0])) {
-          return true;
-        }
-        if (this.state.query!.test(entry[1])) {
-          return true;
-        }
-        if (entry[2] && this.state.query!.test(entry[2]!)) {
-          return true;
-        }
-        if (entry[3] && this.state.query!.test(entry[3]!)) {
-          return true;
-        }
-        return false;
-      });
-    return (
-      <div>
-        <div className="lr-margin">
-          <small>
-            {this.state.timestamp} の dump より生成（全 {this.state.data.length} 件{
-              this.state.data.length !== shownData.length &&
-                `中 ${shownData.length} 件を表示`
-            }）
-          </small>
-        </div>
-        <div className="search">
-          <input
-            type="text"
-            onChange={this.handleSearchChange}
-            placeholder="検索（グリフ名または漢字）"
-            ref={this.searchInput}
-          />
-        </div>
-        <Table data={shownData} />
-      </div>
-    );
-  }
-
-  public componentDidMount() {
+  React.useEffect(() => {
     fetch(jsonUrl).then((response) => {
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
@@ -103,19 +45,18 @@ class App extends React.Component<Record<string, never>, AppState> {
     }) => {
       const data = jsonData.buhin.concat(jsonData.kaku);
       data.forEach((row, i) => { row[4] = i; });
-      this.setState({
+      setDataTimestamp({
         data,
         timestamp: new Date(jsonData.timestamp * 1000).toLocaleString(),
       });
     }).catch(() => {
-      this.setState({
-        errored: true,
-      });
+      setErrored(true);
     });
-  }
+  }, []);
 
-  private handleSearchChange = () => {
-    const obj = this.searchInput.current!.value;
+  const handleSearchChange = React.useCallback<React.ChangeEventHandler<HTMLInputElement>>((evt) => {
+    const inputElem = evt.currentTarget;
+    const obj = inputElem.value;
     let query;
     if (obj === "") {
       query = null;
@@ -126,14 +67,62 @@ class App extends React.Component<Record<string, never>, AppState> {
         query = new RegExp(obj);
       } catch (e) {
         if (e instanceof SyntaxError) {
-          this.searchInput.current!.setCustomValidity(`正規表現エラー: ${e.message}`);
+          inputElem.setCustomValidity(`正規表現エラー: ${e.message}`);
         }
         return;
       }
     }
-    this.searchInput.current!.setCustomValidity("");
-    this.setState({ query });
+    inputElem.setCustomValidity("");
+    setQuery(query);
+  }, []);
+  if (!timestamp) {
+    return (
+      <div style={{
+        color: "gray",
+        fontSize: "24px",
+        textAlign: "center",
+      }}>
+        {errored ? "読み込みエラー" : "読み込み中..."}
+      </div>
+    );
   }
-}
+  const shownData = (!query)
+    ? data
+    : data.filter((entry) => {
+      if (query.test(entry[0])) {
+        return true;
+      }
+      if (query.test(entry[1])) {
+        return true;
+      }
+      if (entry[2] && query.test(entry[2]!)) {
+        return true;
+      }
+      if (entry[3] && query.test(entry[3]!)) {
+        return true;
+      }
+      return false;
+    });
+  return (
+    <div>
+      <div className="lr-margin">
+        <small>
+          {timestamp} の dump より生成（全 {data.length} 件{
+            data.length !== shownData.length &&
+            `中 ${shownData.length} 件を表示`
+          }）
+        </small>
+      </div>
+      <div className="search">
+        <input
+          type="text"
+          onChange={handleSearchChange}
+          placeholder="検索（グリフ名または漢字）"
+        />
+      </div>
+      <Table data={shownData} />
+    </div>
+  );
+};
 
 ReactDOM.render(<App />, document.getElementById("app"));
