@@ -16,7 +16,7 @@ jobs:
           node-version: '16'
 
       - run: |
-          npm install
+          npm ci
           npm run build
           npm run lint
         working-directory: ./viewer
