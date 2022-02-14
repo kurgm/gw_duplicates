@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from abc import ABCMeta, abstractmethod
 import argparse
 import collections
 import functools
@@ -8,8 +9,8 @@ import json
 import logging
 import os
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, \
-    Union, cast
+from typing import Callable, Dict, Generic, Iterator, List, Optional, \
+    Sequence, Tuple, TypeVar, Union, cast
 from urllib.request import urlopen
 
 
@@ -168,9 +169,11 @@ def get_kaku_info(line_data: List[str]) -> \
 Dump = Dict[str, "Glyph"]
 
 BuhinElem = Tuple[float, float, float, float, str]
+BuhinSummary = Tuple[BuhinElem, ...]
 BuhinHash = Tuple[str, ...]
 
 KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
+KakuSummary = Tuple[KakuElem, ...]
 KakuHash0 = Tuple[int, Tuple[int, ...]]
 KakuHash = Tuple[KakuHash0, ...]
 
@@ -283,6 +286,107 @@ class Glyph(object):
     def isAlias(self):
         return len(self.data) == 1 and \
             self.data[0].startswith("99:0:0:0:0:200:200:")
+
+
+Either = Union[Tuple[T, None], Tuple[None, U]]
+
+
+class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
+    __getsummary_stack: List[str]
+    __summary_cache: Dict[str, Either[T, Exception]]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.__getsummary_stack = []
+        self.__summary_cache = {}
+
+    @abstractmethod
+    def _get_summary_impl(self, name: str) -> T:
+        raise NotImplementedError
+
+    def get_summary(self, name: str) -> T:
+        if name in self.__summary_cache:
+            entry = self.__summary_cache[name]
+            if entry[1] is not None:
+                raise entry[1]
+            return entry[0]
+
+        needs_pop = False
+        try:
+            if name in self.__getsummary_stack:
+                raise CircularCallError(f"Circularly called in {name}")
+            self.__getsummary_stack.append(name)
+            needs_pop = True
+            result = self._get_summary_impl(name)
+        except Exception as exc:
+            self.__summary_cache[name] = (None, exc)
+            logging.error(
+                "An error occurred in %r.get_summary(%r)", self, name)
+            raise
+        else:
+            self.__summary_cache[name] = (result, None)
+            return result
+        finally:
+            if needs_pop:
+                self.__getsummary_stack.pop()
+
+
+class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
+    dump: Dump
+
+    def __init__(self, dump: Dump) -> None:
+        self.dump = dump
+
+    @abstractmethod
+    def get_summary(self, name: str) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_hash(self, name: str) -> U:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def is_similar_summary(cls, summary1: T, summay2: T) -> bool:
+        raise NotImplementedError
+
+    def find_similar_glyph_pairs(self) -> Iterator[Tuple[Glyph, Glyph]]:
+        # TODO
+        pass
+
+
+class BuhinSimilarGlyphFinder(
+        GlyphSummaryManagerMixin[BuhinSummary],
+        SimilarGlyphFinderBase[BuhinSummary, BuhinHash]):
+
+    def _get_summary_impl(self, name: str) -> BuhinSummary:
+        return self.dump[name].getBuhin(self.dump)
+
+    def get_hash(self, name: str) -> BuhinHash:
+        return self.dump[name].getBuhinHash(self.dump)
+
+    @classmethod
+    def is_similar_summary(
+            cls, summary1: BuhinSummary, summary2: BuhinSummary) -> bool:
+        # TODO
+        pass
+
+
+class KakuSimilarGlyphFinder(
+        GlyphSummaryManagerMixin[KakuSummary],
+        SimilarGlyphFinderBase[KakuSummary, KakuHash]):
+
+    def _get_summary_impl(self, name: str) -> KakuSummary:
+        return self.dump[name].getKaku(self.dump)
+
+    def get_hash(self, name: str) -> KakuHash:
+        return self.dump[name].getKakuHash(self.dump)
+
+    @classmethod
+    def is_similar_summary(
+            cls, summary1: KakuSummary, summary2: KakuSummary) -> bool:
+        # TODO
+        pass
 
 
 def getDump(path: str):
