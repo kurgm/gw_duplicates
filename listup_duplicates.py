@@ -169,8 +169,20 @@ def compose(f: Callable[[U], R], g: Callable[[T], U]) -> Callable[[T], R]:
     return lambda *args: f(g(*args))
 
 
-def cmp(a: float, b: float):
+Point = Tuple[float, float]
+PointMapper = Callable[[Point], Point]
+
+
+def point_mapper(x_mapper: FloatMapper, y_mapper: FloatMapper) -> PointMapper:
+    return lambda p: (x_mapper(p[0]), y_mapper(p[1]))
+
+
+def cmp(a: float, b: float) -> int:
     return (a > b) - (a < b)
+
+
+def cmp2(a: Point, b: Point) -> int:
+    return cmp(a[0], b[0]) * 3 + cmp(a[1], b[1])
 
 
 henka_re = re.compile(
@@ -184,27 +196,31 @@ henka_re = re.compile(
 
 
 def get_buhin_diflim(name: str):
-    diflim = [15.0, 15.0, 15.0, 15.0]
+    x1 = y1 = x2 = y2 = 15.0
     if m := henka_re.search(name):
         suffix = m.group(1)
         if suffix == "01":
-            diflim[2] = 40.0
+            x2 = 40.0
         elif suffix == "02":
-            diflim[0] = 40.0
+            x1 = 40.0
         elif suffix == "03":
-            diflim[3] = 40.0
+            y2 = 40.0
         elif suffix in ("04", "14", "24"):
-            diflim[1] = 40.0
+            y1 = 40.0
         elif suffix == "08":
-            diflim[1] = 25.0
-            diflim[3] = 25.0
+            y1 = 25.0
+            y2 = 25.0
         elif suffix == "09":
-            diflim[0] = 25.0
-            diflim[2] = 25.0
-    return diflim
+            x1 = 25.0
+            x2 = 25.0
+    return ((x1, y1), (x2, y2))
 
 
-BuhinElem = Tuple[float, float, float, float, str]
+class BuhinElem(NamedTuple):
+    coords: Tuple[Tuple[float, float], Tuple[float, float]]
+    name: str
+
+
 BuhinSummary = Tuple[BuhinElem, ...]
 BuhinHash = Tuple[str, ...]
 
@@ -221,38 +237,39 @@ class BuhinSimilarGlyphFinder(
                 continue
             if splitrow[0] != "99":
                 return ()
+            x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
             buhinname = splitrow[7].split("@")[0]
             b_buhins = self.get_summary(buhinname)
-            x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
             if not b_buhins:
-                buhin.append((x0, y0, x1, y1, buhinname))
+                buhin.append(BuhinElem(((x0, y0), (x1, y1)), buhinname))
                 continue
             x_map = coord_mapper(x0, x1)
             y_map = coord_mapper(y0, y1)
-            for b_x0, b_y0, b_x1, b_y1, b_name in b_buhins:
-                buhin.append((
-                    x_map(b_x0), y_map(b_y0), x_map(b_x1), y_map(b_y1),
-                    b_name))
-        buhin.sort(key=lambda x: x[4])
+            p_map = point_mapper(x_map, y_map)
+            buhin.extend(
+                BuhinElem((p_map(p1), p_map(p2)), b_name)
+                for (p1, p2), b_name in b_buhins)
+        buhin.sort(key=lambda x: x.name)
         return tuple(buhin)
 
     def get_hash(self, name: str) -> BuhinHash:
-        return tuple(b[4] for b in self.get_summary(name))
+        return tuple(b.name for b in self.get_summary(name))
 
     @classmethod
     def is_similar_summary(
             cls, summary1: BuhinSummary, summary2: BuhinSummary) -> bool:
-        for B1, B2 in zip(summary1, summary2):
-            if cmp(B1[0], B1[2]) != cmp(B2[0], B2[2]):
+        for b1, b2 in zip(summary1, summary2):
+            if cmp2(*b1.coords) != cmp2(*b2.coords):
                 return False
-            if cmp(B1[1], B1[3]) != cmp(B2[1], B2[3]):
-                return False
-            diflim = get_buhin_diflim(B1[4])
-            if all(abs(p1 - p2) <= lim
-                    for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
+            diflim = get_buhin_diflim(b1.name)
+            if all(abs(x1 - x2) <= limx and abs(y1 - y2) <= limy
+                    for (x1, y1), (x2, y2), (limx, limy) in
+                    zip(b1.coords, b2.coords, diflim)):
                 continue
-            if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
-                    abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
+            b1p1, b1p2 = b1.coords
+            b2p1, b2p2 = b2.coords
+            if abs((b1p1[0] + b1p2[0]) - (b2p1[0] + b2p2[0])) <= 20.0 and \
+                    abs((b1p1[1] + b1p2[1]) - (b2p1[1] + b2p2[1])) <= 20.0:
                 continue
             return False
         return True
