@@ -9,8 +9,8 @@ import json
 import logging
 import os
 import re
-from typing import Callable, Dict, Generic, Iterator, List, Optional, \
-    Sequence, Tuple, TypeVar, Union, cast
+from typing import Callable, Dict, Generic, Iterator, List, Mapping, \
+    Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.request import urlopen
 
 
@@ -333,9 +333,11 @@ class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
 
 class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
     dump: Dump
+    _hash_dict: Mapping[U, List[Glyph]]
 
     def __init__(self, dump: Dump) -> None:
         self.dump = dump
+        self._hash_dict = collections.defaultdict(list)
 
     @abstractmethod
     def get_summary(self, name: str) -> T:
@@ -351,8 +353,24 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
         raise NotImplementedError
 
     def find_similar_glyph_pairs(self) -> Iterator[Tuple[Glyph, Glyph]]:
-        # TODO
-        pass
+        for name, glyph in self.dump.items():
+            if "_" in name or glyph.isAlias():
+                continue
+            try:
+                ghash = self.get_hash(name)
+                if ghash:
+                    self._hash_dict[ghash].append(glyph)
+            except Exception:
+                logging.exception("Error in %r", name)
+
+        for glyphs in self._hash_dict.values():
+            for g1, g2 in itertools.combinations(glyphs, 2):
+                if g1.xorMaskType != g2.xorMaskType:
+                    continue
+                summary1 = self.get_summary(g1.name)
+                summary2 = self.get_summary(g2.name)
+                if self.is_similar_summary(summary1, summary2):
+                    yield g1, g2
 
 
 class BuhinSimilarGlyphFinder(
@@ -368,8 +386,39 @@ class BuhinSimilarGlyphFinder(
     @classmethod
     def is_similar_summary(
             cls, summary1: BuhinSummary, summary2: BuhinSummary) -> bool:
-        # TODO
-        pass
+        for B1, B2 in zip(summary1, summary2):
+            if cmp(B1[0], B1[2]) != cmp(B2[0], B2[2]):
+                break
+            if cmp(B1[1], B1[3]) != cmp(B2[1], B2[3]):
+                break
+            diflim = [15.0, 15.0, 15.0, 15.0]
+            m = henka_re.search(B1[4])
+            if m:
+                suffix = m.group(1)
+                if suffix == "01":
+                    diflim[2] = 40.0
+                elif suffix == "02":
+                    diflim[0] = 40.0
+                elif suffix == "03":
+                    diflim[3] = 40.0
+                elif suffix in ("04", "14", "24"):
+                    diflim[1] = 40.0
+                elif suffix == "08":
+                    diflim[1] = 25.0
+                    diflim[3] = 25.0
+                elif suffix == "09":
+                    diflim[0] = 25.0
+                    diflim[2] = 25.0
+            if all(abs(p1 - p2) <= lim
+                    for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
+                continue
+            if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
+                    abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
+                continue
+            break
+        else:
+            return True
+        return False
 
 
 class KakuSimilarGlyphFinder(
@@ -385,8 +434,15 @@ class KakuSimilarGlyphFinder(
     @classmethod
     def is_similar_summary(
             cls, summary1: KakuSummary, summary2: KakuSummary) -> bool:
-        # TODO
-        pass
+        for (K1, K2) in zip(summary1, summary2):
+            if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(
+                    cast(Tuple[float, ...], K1[2:4] + K1[-2:]),
+                    cast(Tuple[float, ...], K2[2:4] + K2[-2:]))):
+                continue
+            break
+        else:
+            return True
+        return False
 
 
 def getDump(path: str):
@@ -447,79 +503,15 @@ DEFAULT_OUT_PATH = "duplicates.json"
 def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
     glyphlist, dump, timestamp = getDump(dump_path)
 
-    glyphsByBuhin: Dict[BuhinHash, List[Glyph]] = collections.defaultdict(list)
-    glyphsByKaku: Dict[KakuHash, List[Glyph]] = collections.defaultdict(list)
-
-    for glyph in glyphlist:
-        if "_" in glyph.name or glyph.isAlias():
-            continue
-        try:
-            bh = glyph.getBuhinHash(dump)
-            if bh:
-                glyphsByBuhin[bh].append(glyph)
-            kh = glyph.getKakuHash(dump)
-            if kh:
-                glyphsByKaku[kh].append(glyph)
-        except Exception:
-            logging.exception('Error in "%s"', glyph.name)
-
     result = {"buhin": [], "kaku": [], "timestamp": timestamp}
 
-    for glyphs in glyphsByBuhin.values():
-        for g1, g2 in itertools.combinations(glyphs, 2):
-            if g1.xorMaskType != g2.xorMaskType:
-                continue
-            b1 = g1.getBuhin(dump)
-            b2 = g2.getBuhin(dump)
-            for (B1, B2) in zip(b1, b2):
-                if cmp(B1[0], B1[2]) != cmp(B2[0], B2[2]):
-                    break
-                if cmp(B1[1], B1[3]) != cmp(B2[1], B2[3]):
-                    break
-                diflim = [15.0, 15.0, 15.0, 15.0]
-                m = henka_re.search(B1[4])
-                if m:
-                    suffix = m.group(1)
-                    if suffix == "01":
-                        diflim[2] = 40.0
-                    elif suffix == "02":
-                        diflim[0] = 40.0
-                    elif suffix == "03":
-                        diflim[3] = 40.0
-                    elif suffix in ("04", "14", "24"):
-                        diflim[1] = 40.0
-                    elif suffix == "08":
-                        diflim[1] = 25.0
-                        diflim[3] = 25.0
-                    elif suffix == "09":
-                        diflim[0] = 25.0
-                        diflim[2] = 25.0
-                if all(abs(p1 - p2) <= lim
-                       for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
-                    continue
-                if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
-                        abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
-                    continue
-                break
-            else:
-                result["buhin"].append((g1.name, g2.name, g1.rel, g2.rel))
+    for g1, g2 in BuhinSimilarGlyphFinder(dump).find_similar_glyph_pairs():
+        result["buhin"].append((g1.name, g2.name, g1.rel, g2.rel))
 
-    for glyphs in glyphsByKaku.values():
-        for g1, g2 in itertools.combinations(glyphs, 2):
-            if g1.xorMaskType != g2.xorMaskType:
-                continue
-            k1 = g1.getKaku(dump)
-            k2 = g2.getKaku(dump)
-            for (K1, K2) in zip(k1, k2):
-                if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(
-                        cast(Tuple[float, ...], K1[2:4] + K1[-2:]),
-                        cast(Tuple[float, ...], K2[2:4] + K2[-2:]))):
-                    continue
-                break
-            else:
-                r = (g1.name, g2.name, g1.rel, g2.rel)
-                if r not in result["buhin"]:
-                    result["kaku"].append(r)
+    for g1, g2 in KakuSimilarGlyphFinder(dump).find_similar_glyph_pairs():
+        r = (g1.name, g2.name, g1.rel, g2.rel)
+        if r not in result["buhin"]:
+            result["kaku"].append(r)
 
     with open(out_path, "w") as outfile:
         json.dump(result, outfile, separators=(",", ":"))
