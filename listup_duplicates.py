@@ -8,7 +8,8 @@ import json
 import logging
 import os
 import re
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, \
+    Union, cast
 from urllib.request import urlopen
 
 
@@ -176,10 +177,13 @@ KakuHash = Tuple[KakuHash0, ...]
 
 class Glyph(object):
 
-    def __init__(self, name: str, rel: str, data: str):
+    def __init__(
+            self, name: str, rel: Optional[str], data: Sequence[str],
+            xorMaskType: int = 0):
         self.name = name
-        self.rel = rel if rel != "u3013" else None
-        self.data = data.split("$")
+        self.rel = rel
+        self.data = data
+        self.xorMaskType = xorMaskType
 
     def __repr__(self):
         return "Glyph({0.name!r}, {0.rel!r}, {0.data!r})".format(self)
@@ -280,10 +284,9 @@ class Glyph(object):
         return len(self.data) == 1 and \
             self.data[0].startswith("99:0:0:0:0:200:200:")
 
-    xorMaskType = 0
-
 
 def getDump(path: str):
+    masktype_map = get_xor_mask_type_map()
     glyphlist: List[Glyph] = []
     dump: Dump = {}
     timestamp = os.path.getmtime(path)
@@ -295,28 +298,32 @@ def getDump(path: str):
             split_line = line[:-1].split("|")
             if len(split_line) != 3:
                 continue
-            split_line = [x.strip() for x in split_line]
-            glyph = Glyph(*split_line)
+            name, rel, gdata = [x.strip() for x in split_line]
+            if rel == "u3013":
+                rel = None
+            glyph = Glyph(
+                name, rel, gdata.split("$"), masktype_map.get(name, 0))
             glyphlist.append(glyph)
-            dump[split_line[0]] = glyph
+            dump[name] = glyph
     return glyphlist, dump, timestamp
 
 
-def setXorMaskType(dump: Dump):
+def get_xor_mask_type_map():
     neg_url = "https://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
     neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
 
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
     neg_masktype = 0
+    result: Dict[str, int] = {}
     for m in re.finditer(
             r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
             neg_src, re.M):
         gn = m.group(1)
         if gn:
-            if gn in dump:
-                dump[gn].xorMaskType = neg_masktype
+            result[gn] = neg_masktype
         else:
             neg_masktype += 1
+    return result
 
 
 henka_re = re.compile(
@@ -335,7 +342,6 @@ DEFAULT_OUT_PATH = "duplicates.json"
 
 def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
     glyphlist, dump, timestamp = getDump(dump_path)
-    setXorMaskType(dump)
 
     glyphsByBuhin: Dict[BuhinHash, List[Glyph]] = collections.defaultdict(list)
     glyphsByKaku: Dict[KakuHash, List[Glyph]] = collections.defaultdict(list)
