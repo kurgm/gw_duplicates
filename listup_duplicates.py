@@ -3,6 +3,7 @@
 from abc import ABCMeta, abstractmethod
 import argparse
 import collections
+import copy
 import itertools
 import json
 import logging
@@ -64,7 +65,9 @@ class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
         if name in self.__summary_cache:
             entry = self.__summary_cache[name]
             if entry[1] is not None:
-                raise entry[1]
+                # Copy the exception to prevent the traceback of original exc
+                # getting extended
+                raise copy.copy(entry[1])
             return entry[0]
 
         needs_pop = False
