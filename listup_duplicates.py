@@ -3,7 +3,6 @@
 from abc import ABCMeta, abstractmethod
 import argparse
 import collections
-import functools
 import itertools
 import json
 import logging
@@ -21,55 +20,8 @@ def cmp(a: float, b: float):
 logging.basicConfig(level=logging.DEBUG)
 
 
-def memoize_to(attr_name: str):
-    def _memoize_to(f):
-        @functools.wraps(f)
-        def wrapper(self, *args, **kwargs):
-            try:
-                return getattr(self, attr_name)
-            except AttributeError:
-                pass
-            result = f(self, *args, **kwargs)
-            setattr(self, attr_name, result)
-            return result
-
-        return wrapper
-
-    return _memoize_to
-
-
-def print_arg0_on_error(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception:
-            logging.error("An error occurred in %s(%r, ...)",
-                          f.__name__, args[0])
-            raise
-
-    return wrapper
-
-
 class CircularCallError(ValueError):
     pass
-
-
-def check_circular_call_arg0(f):
-    callstack = []
-
-    @functools.wraps(f)
-    def wrapper(self, *args, **kwargs):
-        if self in callstack:
-            raise CircularCallError(
-                "circularly called in '{0}'".format(self))
-        callstack.append(self)
-        try:
-            return f(self, *args, **kwargs)
-        finally:
-            callstack.pop()
-
-    return wrapper
 
 
 FloatMapper = Callable[[float], float]
@@ -191,98 +143,6 @@ class Glyph(object):
     def __repr__(self):
         return "Glyph({0.name!r}, {0.rel!r}, {0.data!r})".format(self)
 
-    @memoize_to("buhin")
-    @print_arg0_on_error
-    @check_circular_call_arg0
-    def getBuhin(self, dump: Dump):
-        buhin: List[BuhinElem] = []
-        for row in self.data:
-            splitrow = row.split(":")
-            if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
-                continue
-            if splitrow[0] != "99":
-                buhin = []
-                break
-            buhinname = splitrow[7].split("@")[0]
-            b_buhins = dump[buhinname].getBuhin(dump)
-            x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
-            if not b_buhins:
-                buhin.append((x0, y0, x1, y1, buhinname))
-                continue
-            x_map = coord_mapper(x0, x1)
-            y_map = coord_mapper(y0, y1)
-            for b_x0, b_y0, b_x1, b_y1, b_name in b_buhins:
-                buhin.append((
-                    x_map(b_x0), y_map(b_y0), x_map(b_x1), y_map(b_y1),
-                    b_name))
-        buhin.sort(key=lambda x: x[4])
-        return tuple(buhin)
-
-    def getBuhinHash(self, dump: Dump) -> BuhinHash:
-        return tuple(b[4] for b in self.getBuhin(dump))
-
-    @memoize_to("kaku")
-    @print_arg0_on_error
-    @check_circular_call_arg0
-    def getKaku(self, dump: Dump):
-        k: List[KakuElem] = []
-        for row in self.data:
-            line_data = row.split(":")
-            if line_data[0] != "99":
-                kaku_info = get_kaku_info(line_data)
-                if kaku_info is None:
-                    continue
-                kaku_type, shapes, points = kaku_info
-                dir1 = cmp(points[0], points[2]) * 3 + \
-                    cmp(points[1], points[3])
-                dir2 = cmp(points[-4], points[-2]) * 3 + \
-                    cmp(points[-3], points[-1])
-                dirs = (dir1,) if len(points) == 4 else (dir1, dir2)
-                kaku_sig = (kaku_type, dirs + shapes) + points
-                k.append(kaku_sig)
-                continue
-
-            buhinname = line_data[7].split("@")[0]
-            b_kakus = dump[buhinname].getKaku(dump)
-            x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
-            dpx = float(line_data[1])
-            dpy = float(line_data[2])
-            spx = spy = 0.0
-            try:
-                spx = float(line_data[9])
-                spy = float(line_data[10])
-            except IndexError:
-                pass
-            x_map = coord_mapper(x0, x1)
-            y_map = coord_mapper(y0, y1)
-            if not dpx == dpy == 0.0:
-                if dpx > 100.0:
-                    dpx -= 200.0  # 任意点モード
-                else:
-                    spx = spy = 0.0  # 中心点モード
-                stretch_x = stretch_mapper(
-                    dpx, spx,
-                    [x for b_kaku in b_kakus for x in cast(
-                        Tuple[float, ...], b_kaku[2::2])]
-                )
-                stretch_y = stretch_mapper(
-                    dpy, spy,
-                    [y for b_kaku in b_kakus for y in cast(
-                        Tuple[float, ...], b_kaku[3::2])]
-                )
-                x_map = compose(x_map, stretch_x)
-                y_map = compose(y_map, stretch_y)
-            for b_kaku in b_kakus:
-                points = list(cast(Tuple[float], b_kaku[2:]))
-                points[0::2] = [x_map(x) for x in points[0::2]]
-                points[1::2] = [y_map(y) for y in points[1::2]]
-                k.append(b_kaku[0:2] + tuple(points))
-        k.sort()
-        return tuple(k)
-
-    def getKakuHash(self, dump: Dump) -> KakuHash:
-        return tuple(cast(KakuHash0, k[0:2]) for k in self.getKaku(dump))
-
     def isAlias(self):
         return len(self.data) == 1 and \
             self.data[0].startswith("99:0:0:0:0:200:200:")
@@ -378,10 +238,31 @@ class BuhinSimilarGlyphFinder(
         SimilarGlyphFinderBase[BuhinSummary, BuhinHash]):
 
     def _get_summary_impl(self, name: str) -> BuhinSummary:
-        return self.dump[name].getBuhin(self.dump)
+        buhin: List[BuhinElem] = []
+        for row in self.dump[name].data:
+            splitrow = row.split(":")
+            if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
+                continue
+            if splitrow[0] != "99":
+                buhin = []
+                break
+            buhinname = splitrow[7].split("@")[0]
+            b_buhins = self.get_summary(buhinname)
+            x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
+            if not b_buhins:
+                buhin.append((x0, y0, x1, y1, buhinname))
+                continue
+            x_map = coord_mapper(x0, x1)
+            y_map = coord_mapper(y0, y1)
+            for b_x0, b_y0, b_x1, b_y1, b_name in b_buhins:
+                buhin.append((
+                    x_map(b_x0), y_map(b_y0), x_map(b_x1), y_map(b_y1),
+                    b_name))
+        buhin.sort(key=lambda x: x[4])
+        return tuple(buhin)
 
     def get_hash(self, name: str) -> BuhinHash:
-        return self.dump[name].getBuhinHash(self.dump)
+        return tuple(b[4] for b in self.get_summary(name))
 
     @classmethod
     def is_similar_summary(
@@ -426,10 +307,63 @@ class KakuSimilarGlyphFinder(
         SimilarGlyphFinderBase[KakuSummary, KakuHash]):
 
     def _get_summary_impl(self, name: str) -> KakuSummary:
-        return self.dump[name].getKaku(self.dump)
+        k: List[KakuElem] = []
+        for row in self.dump[name].data:
+            line_data = row.split(":")
+            if line_data[0] != "99":
+                kaku_info = get_kaku_info(line_data)
+                if kaku_info is None:
+                    continue
+                kaku_type, shapes, points = kaku_info
+                dir1 = cmp(points[0], points[2]) * 3 + \
+                    cmp(points[1], points[3])
+                dir2 = cmp(points[-4], points[-2]) * 3 + \
+                    cmp(points[-3], points[-1])
+                dirs = (dir1,) if len(points) == 4 else (dir1, dir2)
+                kaku_sig = (kaku_type, dirs + shapes) + points
+                k.append(kaku_sig)
+                continue
+
+            buhinname = line_data[7].split("@")[0]
+            b_kakus = self.get_summary(buhinname)
+            x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+            dpx = float(line_data[1])
+            dpy = float(line_data[2])
+            spx = spy = 0.0
+            try:
+                spx = float(line_data[9])
+                spy = float(line_data[10])
+            except IndexError:
+                pass
+            x_map = coord_mapper(x0, x1)
+            y_map = coord_mapper(y0, y1)
+            if not dpx == dpy == 0.0:
+                if dpx > 100.0:
+                    dpx -= 200.0  # 任意点モード
+                else:
+                    spx = spy = 0.0  # 中心点モード
+                stretch_x = stretch_mapper(
+                    dpx, spx,
+                    [x for b_kaku in b_kakus for x in cast(
+                        Tuple[float, ...], b_kaku[2::2])]
+                )
+                stretch_y = stretch_mapper(
+                    dpy, spy,
+                    [y for b_kaku in b_kakus for y in cast(
+                        Tuple[float, ...], b_kaku[3::2])]
+                )
+                x_map = compose(x_map, stretch_x)
+                y_map = compose(y_map, stretch_y)
+            for b_kaku in b_kakus:
+                points = list(cast(Tuple[float], b_kaku[2:]))
+                points[0::2] = [x_map(x) for x in points[0::2]]
+                points[1::2] = [y_map(y) for y in points[1::2]]
+                k.append(b_kaku[0:2] + tuple(points))
+        k.sort()
+        return tuple(k)
 
     def get_hash(self, name: str) -> KakuHash:
-        return self.dump[name].getKakuHash(self.dump)
+        return tuple(cast(KakuHash0, k[0:2]) for k in self.get_summary(name))
 
     @classmethod
     def is_similar_summary(
