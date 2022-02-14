@@ -13,10 +13,6 @@ from typing import Callable, Dict, Generic, Iterator, List, Mapping, \
 from urllib.request import urlopen
 
 
-def cmp(a: float, b: float):
-    return (a > b) - (a < b)
-
-
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -24,110 +20,10 @@ class CircularCallError(ValueError):
     pass
 
 
-FloatMapper = Callable[[float], float]
-
-
-def coord_mapper(bp0: float, bp1: float) -> FloatMapper:
-    scale = (bp1 - bp0) / 200.0
-    return lambda p: bp0 + p * scale
-
-
-def stretch(
-        dp: float, sp: float, p: float,
-        pmin: float = 12.0, pmax: float = 188.0):
-    if p < sp + 100.0:
-        p1 = pmin
-        p3 = pmin
-        p2 = sp + 100.0
-        p4 = dp + 100.0
-    else:
-        p1 = sp + 100.0
-        p3 = dp + 100.0
-        p2 = pmax
-        p4 = pmax
-    return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
-
-
-def stretch_mapper(dp: float, sp: float, coords: List[float] = []) -> \
-        FloatMapper:
-    if coords:
-        pmin = min(coords)
-        pmax = max(coords)
-    else:
-        pmin = 12.0
-        pmax = 188.0
-    return lambda p: stretch(dp, sp, p, pmin, pmax)
-
-
 T = TypeVar("T")
 U = TypeVar("U")
 R = TypeVar("R")
-
-
-def compose(f: Callable[[U], R], g: Callable[[T], U]) -> Callable[[T], R]:
-    return lambda *args: f(g(*args))
-
-
-def dist_from_line(
-        x0: float, y0: float, x1: float, y1: float, x: float, y: float):
-    if abs(y0 - y1) > abs(x0 - x1):
-        return abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0) - x)
-    return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
-
-
-def get_kaku_info(line_data: List[str]) -> \
-        Optional[Tuple[int, Tuple[int, int], Tuple[float, ...]]]:
-    strokeType = line_data[0]
-    sttType = int(line_data[1])
-    endType = int(line_data[2])
-    if strokeType == "1":
-        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
-        if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
-                (y0 == y1 and x0 > x1):
-            x0, y0, x1, y1 = x1, y1, x0, y0
-        return 1, (sttType if sttType != 2 else 0, endType), (x0, y0, x1, y1)
-    if strokeType == "2":
-        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
-        if sttType == 32 and endType == 0 and \
-                ((y0 == y2 and x0 > x2) or y0 > y2):
-            x0, y0, x2, y2 = x2, y2, x0, y0
-        if endType == 0 and sttType in (0, 12, 22, 32) and \
-                0 != abs(y0 - y2) >= x2 - x0 and \
-                dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
-            return 1, (sttType, 32), (x0, y0, x2, y2)
-        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2)
-    if strokeType in ("6", "7"):
-        x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in line_data[3:11]]
-        if sttType == 32 and endType == 0 and \
-                ((y0 == y3 and x0 > x3) or y0 > y3):
-            x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
-        if endType == 0 and sttType in (0, 12, 22, 32) and \
-                0 != abs(y0 - y3) >= x3 - x0 and \
-                dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
-                dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
-            return 1, (sttType, 32), (x0, y0, x3, y3)
-        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2, x3, y3)
-    if strokeType in ("3", "4"):
-        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
-        return 3, (sttType, endType), (x0, y0, x1, y1, x2, y2)
-
-    if strokeType == "0" and sttType in (97, 98, 99):
-        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
-        return 0, (sttType, endType), (x0, y0, x1, y1)
-
-    return None
-
-
-Dump = Dict[str, "Glyph"]
-
-BuhinElem = Tuple[float, float, float, float, str]
-BuhinSummary = Tuple[BuhinElem, ...]
-BuhinHash = Tuple[str, ...]
-
-KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
-KakuSummary = Tuple[KakuElem, ...]
-KakuHash0 = Tuple[int, Tuple[int, ...]]
-KakuHash = Tuple[KakuHash0, ...]
+Either = Union[Tuple[T, None], Tuple[None, U]]
 
 
 class Glyph(object):
@@ -148,7 +44,7 @@ class Glyph(object):
             self.data[0].startswith("99:0:0:0:0:200:200:")
 
 
-Either = Union[Tuple[T, None], Tuple[None, U]]
+Dump = Mapping[str, Glyph]
 
 
 class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
@@ -233,6 +129,63 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
                     yield g1, g2
 
 
+FloatMapper = Callable[[float], float]
+
+
+def coord_mapper(bp0: float, bp1: float) -> FloatMapper:
+    scale = (bp1 - bp0) / 200.0
+    return lambda p: bp0 + p * scale
+
+
+def stretch(
+        dp: float, sp: float, p: float,
+        pmin: float = 12.0, pmax: float = 188.0):
+    if p < sp + 100.0:
+        p1 = pmin
+        p3 = pmin
+        p2 = sp + 100.0
+        p4 = dp + 100.0
+    else:
+        p1 = sp + 100.0
+        p3 = dp + 100.0
+        p2 = pmax
+        p4 = pmax
+    return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
+
+
+def stretch_mapper(dp: float, sp: float, coords: List[float] = []) -> \
+        FloatMapper:
+    if coords:
+        pmin = min(coords)
+        pmax = max(coords)
+    else:
+        pmin = 12.0
+        pmax = 188.0
+    return lambda p: stretch(dp, sp, p, pmin, pmax)
+
+
+def compose(f: Callable[[U], R], g: Callable[[T], U]) -> Callable[[T], R]:
+    return lambda *args: f(g(*args))
+
+
+def cmp(a: float, b: float):
+    return (a > b) - (a < b)
+
+
+henka_re = re.compile(
+    r"""
+        -(?:[gtv]v?|[hmis]|j[asv]?|k[pv]?|u[ks]?)?(\d{2})
+        (?:-(?:var|itaiji)-\d{3})?
+        $
+    """,
+    re.X
+)
+
+BuhinElem = Tuple[float, float, float, float, str]
+BuhinSummary = Tuple[BuhinElem, ...]
+BuhinHash = Tuple[str, ...]
+
+
 class BuhinSimilarGlyphFinder(
         GlyphSummaryManagerMixin[BuhinSummary],
         SimilarGlyphFinderBase[BuhinSummary, BuhinHash]):
@@ -300,6 +253,62 @@ class BuhinSimilarGlyphFinder(
         else:
             return True
         return False
+
+
+KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
+KakuSummary = Tuple[KakuElem, ...]
+KakuHash0 = Tuple[int, Tuple[int, ...]]
+KakuHash = Tuple[KakuHash0, ...]
+
+
+def dist_from_line(
+        x0: float, y0: float, x1: float, y1: float, x: float, y: float):
+    if abs(y0 - y1) > abs(x0 - x1):
+        return abs(x0 + (x1 - x0) * (y - y0) / (y1 - y0) - x)
+    return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
+
+
+def get_kaku_info(line_data: List[str]) -> \
+        Optional[Tuple[int, Tuple[int, int], Tuple[float, ...]]]:
+    strokeType = line_data[0]
+    sttType = int(line_data[1])
+    endType = int(line_data[2])
+    if strokeType == "1":
+        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+        if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
+                (y0 == y1 and x0 > x1):
+            x0, y0, x1, y1 = x1, y1, x0, y0
+        return 1, (sttType if sttType != 2 else 0, endType), (x0, y0, x1, y1)
+    if strokeType == "2":
+        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
+        if sttType == 32 and endType == 0 and \
+                ((y0 == y2 and x0 > x2) or y0 > y2):
+            x0, y0, x2, y2 = x2, y2, x0, y0
+        if endType == 0 and sttType in (0, 12, 22, 32) and \
+                0 != abs(y0 - y2) >= x2 - x0 and \
+                dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
+            return 1, (sttType, 32), (x0, y0, x2, y2)
+        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2)
+    if strokeType in ("6", "7"):
+        x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in line_data[3:11]]
+        if sttType == 32 and endType == 0 and \
+                ((y0 == y3 and x0 > x3) or y0 > y3):
+            x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
+        if endType == 0 and sttType in (0, 12, 22, 32) and \
+                0 != abs(y0 - y3) >= x3 - x0 and \
+                dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
+                dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
+            return 1, (sttType, 32), (x0, y0, x3, y3)
+        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2, x3, y3)
+    if strokeType in ("3", "4"):
+        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
+        return 3, (sttType, endType), (x0, y0, x1, y1, x2, y2)
+
+    if strokeType == "0" and sttType in (97, 98, 99):
+        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+        return 0, (sttType, endType), (x0, y0, x1, y1)
+
+    return None
 
 
 class KakuSimilarGlyphFinder(
@@ -379,6 +388,24 @@ class KakuSimilarGlyphFinder(
         return False
 
 
+def get_xor_mask_type_map():
+    neg_url = "https://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
+    neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
+
+    neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
+    neg_masktype = 0
+    result: Dict[str, int] = {}
+    for m in re.finditer(
+            r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
+            neg_src, re.M):
+        gn = m.group(1)
+        if gn:
+            result[gn] = neg_masktype
+        else:
+            neg_masktype += 1
+    return result
+
+
 def getDump(path: str):
     masktype_map = get_xor_mask_type_map()
     glyphlist: List[Glyph] = []
@@ -400,34 +427,6 @@ def getDump(path: str):
             glyphlist.append(glyph)
             dump[name] = glyph
     return glyphlist, dump, timestamp
-
-
-def get_xor_mask_type_map():
-    neg_url = "https://glyphwiki.org/wiki/Group:NegativeCharacters?action=edit"
-    neg_data = urlopen(neg_url, timeout=60).read().decode("utf-8")
-
-    neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
-    neg_masktype = 0
-    result: Dict[str, int] = {}
-    for m in re.finditer(
-            r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
-            neg_src, re.M):
-        gn = m.group(1)
-        if gn:
-            result[gn] = neg_masktype
-        else:
-            neg_masktype += 1
-    return result
-
-
-henka_re = re.compile(
-    r"""
-        -(?:[gtv]v?|[hmis]|j[asv]?|k[pv]?|u[ks]?)?(\d{2})
-        (?:-(?:var|itaiji)-\d{3})?
-        $
-    """,
-    re.X
-)
 
 
 DEFAULT_DUMP_PATH = "dump_newest_only.txt"
