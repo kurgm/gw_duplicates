@@ -91,11 +91,9 @@ class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
 
 class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
     dump: Dump
-    _hash_dict: Mapping[U, List[Glyph]]
 
     def __init__(self, dump: Dump) -> None:
         self.dump = dump
-        self._hash_dict = collections.defaultdict(list)
 
     @abstractmethod
     def get_summary(self, name: str) -> T:
@@ -111,17 +109,18 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
         raise NotImplementedError
 
     def find_similar_glyph_pairs(self) -> Iterator[Tuple[Glyph, Glyph]]:
+        hash_dict: Mapping[U, List[Glyph]] = collections.defaultdict(list)
         for name, glyph in self.dump.items():
             if "_" in name or glyph.isAlias():
                 continue
             try:
                 ghash = self.get_hash(name)
                 if ghash:
-                    self._hash_dict[ghash].append(glyph)
+                    hash_dict[ghash].append(glyph)
             except Exception:
                 logging.exception("Error in %r", name)
 
-        for glyphs in self._hash_dict.values():
+        for glyphs in hash_dict.values():
             for g1, g2 in itertools.combinations(glyphs, 2):
                 if g1.xorMaskType != g2.xorMaskType:
                     continue
@@ -183,6 +182,28 @@ henka_re = re.compile(
     re.X
 )
 
+
+def get_buhin_diflim(name: str):
+    diflim = [15.0, 15.0, 15.0, 15.0]
+    if m := henka_re.search(name):
+        suffix = m.group(1)
+        if suffix == "01":
+            diflim[2] = 40.0
+        elif suffix == "02":
+            diflim[0] = 40.0
+        elif suffix == "03":
+            diflim[3] = 40.0
+        elif suffix in ("04", "14", "24"):
+            diflim[1] = 40.0
+        elif suffix == "08":
+            diflim[1] = 25.0
+            diflim[3] = 25.0
+        elif suffix == "09":
+            diflim[0] = 25.0
+            diflim[2] = 25.0
+    return diflim
+
+
 BuhinElem = Tuple[float, float, float, float, str]
 BuhinSummary = Tuple[BuhinElem, ...]
 BuhinHash = Tuple[str, ...]
@@ -199,8 +220,7 @@ class BuhinSimilarGlyphFinder(
             if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
                 continue
             if splitrow[0] != "99":
-                buhin = []
-                break
+                return ()
             buhinname = splitrow[7].split("@")[0]
             b_buhins = self.get_summary(buhinname)
             x0, y0, x1, y1 = [float(x) for x in splitrow[3:7]]
@@ -224,37 +244,18 @@ class BuhinSimilarGlyphFinder(
             cls, summary1: BuhinSummary, summary2: BuhinSummary) -> bool:
         for B1, B2 in zip(summary1, summary2):
             if cmp(B1[0], B1[2]) != cmp(B2[0], B2[2]):
-                break
+                return False
             if cmp(B1[1], B1[3]) != cmp(B2[1], B2[3]):
-                break
-            diflim = [15.0, 15.0, 15.0, 15.0]
-            m = henka_re.search(B1[4])
-            if m:
-                suffix = m.group(1)
-                if suffix == "01":
-                    diflim[2] = 40.0
-                elif suffix == "02":
-                    diflim[0] = 40.0
-                elif suffix == "03":
-                    diflim[3] = 40.0
-                elif suffix in ("04", "14", "24"):
-                    diflim[1] = 40.0
-                elif suffix == "08":
-                    diflim[1] = 25.0
-                    diflim[3] = 25.0
-                elif suffix == "09":
-                    diflim[0] = 25.0
-                    diflim[2] = 25.0
+                return False
+            diflim = get_buhin_diflim(B1[4])
             if all(abs(p1 - p2) <= lim
                     for (p1, p2, lim) in zip(B1[0:4], B2[0:4], diflim)):
                 continue
             if abs((B1[0] + B1[2]) - (B2[0] + B2[2])) <= 20.0 and \
                     abs((B1[1] + B1[3]) - (B2[1] + B2[3])) <= 20.0:
                 continue
-            break
-        else:
-            return True
-        return False
+            return False
+        return True
 
 
 KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
@@ -340,12 +341,8 @@ class KakuSimilarGlyphFinder(
             x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
             dpx = float(line_data[1])
             dpy = float(line_data[2])
-            spx = spy = 0.0
-            try:
-                spx = float(line_data[9])
-                spy = float(line_data[10])
-            except IndexError:
-                pass
+            spx = float(line_data[9]) if len(line_data) > 9 else 0.0
+            spy = float(line_data[10]) if len(line_data) > 10 else 0.0
             x_map = coord_mapper(x0, x1)
             y_map = coord_mapper(y0, y1)
             if not dpx == dpy == 0.0:
@@ -380,14 +377,11 @@ class KakuSimilarGlyphFinder(
     def is_similar_summary(
             cls, summary1: KakuSummary, summary2: KakuSummary) -> bool:
         for (K1, K2) in zip(summary1, summary2):
-            if all(abs(p1 - p2) <= 20.0 for (p1, p2) in zip(
+            if any(abs(p1 - p2) > 20.0 for (p1, p2) in zip(
                     cast(Tuple[float, ...], K1[2:4] + K1[-2:]),
                     cast(Tuple[float, ...], K2[2:4] + K2[-2:]))):
-                continue
-            break
-        else:
-            return True
-        return False
+                return False
+        return True
 
 
 def get_xor_mask_type_map():
