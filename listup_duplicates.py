@@ -10,7 +10,7 @@ import logging
 import os
 import re
 from typing import Callable, Dict, Generic, Iterator, List, Mapping, \
-    Optional, Sequence, Tuple, TypeVar, Union, cast
+    NamedTuple, Optional, Sequence, Set, Tuple, Type, TypeVar, Union, cast
 from urllib.request import urlopen
 
 
@@ -27,25 +27,24 @@ R = TypeVar("R")
 Either = Union[Tuple[T, None], Tuple[None, U]]
 
 
-class Glyph(object):
+class Glyph(NamedTuple):
 
-    def __init__(
-            self, name: str, rel: Optional[str], data: Sequence[str],
-            xorMaskType: int = 0):
-        self.name = name
-        self.rel = rel
-        self.data = data
-        self.xorMaskType = xorMaskType
-
-    def __repr__(self):
-        return "Glyph({0.name!r}, {0.rel!r}, {0.data!r})".format(self)
+    name: str
+    rel: Optional[str]
+    data: Sequence[str]
+    xorMaskType: int = 0
 
     def isAlias(self):
         return len(self.data) == 1 and \
             self.data[0].startswith("99:0:0:0:0:200:200:")
 
 
-Dump = Mapping[str, Glyph]
+class Dump(Dict[str, Glyph]):
+    timestamp: float
+
+    def __init__(self, timestamp: float, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timestamp = timestamp
 
 
 class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
@@ -411,9 +410,8 @@ def get_xor_mask_type_map():
 
 def getDump(path: str):
     masktype_map = get_xor_mask_type_map()
-    glyphlist: List[Glyph] = []
-    dump: Dump = {}
     timestamp = os.path.getmtime(path)
+    dump = Dump(timestamp)
     with open(path, "r", encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
@@ -427,9 +425,8 @@ def getDump(path: str):
                 rel = None
             glyph = Glyph(
                 name, rel, gdata.split("$"), masktype_map.get(name, 0))
-            glyphlist.append(glyph)
             dump[name] = glyph
-    return glyphlist, dump, timestamp
+    return dump
 
 
 DEFAULT_DUMP_PATH = "dump_newest_only.txt"
@@ -437,17 +434,29 @@ DEFAULT_OUT_PATH = "duplicates.json"
 
 
 def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
-    glyphlist, dump, timestamp = getDump(dump_path)
+    sgfinders: List[Tuple[str, Type[SimilarGlyphFinderBase]]] = [
+        ("buhin", BuhinSimilarGlyphFinder),
+        ("kaku", KakuSimilarGlyphFinder),
+    ]
 
-    result = {"buhin": [], "kaku": [], "timestamp": timestamp}
+    dump = getDump(dump_path)
 
-    for g1, g2 in BuhinSimilarGlyphFinder(dump).find_similar_glyph_pairs():
-        result["buhin"].append((g1.name, g2.name, g1.rel, g2.rel))
+    result = {}
+    visited_pairs: Set[Tuple[str, str]] = set()
 
-    for g1, g2 in KakuSimilarGlyphFinder(dump).find_similar_glyph_pairs():
-        r = (g1.name, g2.name, g1.rel, g2.rel)
-        if r not in result["buhin"]:
-            result["kaku"].append(r)
+    for key, sgfindercls in sgfinders:
+        entries: List[Tuple[str, str, Optional[str], Optional[str]]] = []
+        finder = sgfindercls(dump)
+        for g1, g2 in finder.find_similar_glyph_pairs():
+            name_pair = (g1.name, g2.name)
+            if name_pair in visited_pairs:
+                continue
+            visited_pairs.add(name_pair)
+            entries.append((g1.name, g2.name, g1.rel, g2.rel))
+
+        result[key] = entries
+
+    result["timestamp"] = dump.timestamp
 
     with open(out_path, "w") as outfile:
         json.dump(result, outfile, separators=(",", ":"))
