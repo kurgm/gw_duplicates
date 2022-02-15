@@ -222,8 +222,8 @@ def get_buhin_diflim(name: str):
 
 
 class BuhinElem(NamedTuple):
-    coords: Tuple[Point, Point]
     name: str
+    coords: Tuple[Point, Point]
 
 
 BuhinSummary = Tuple[BuhinElem, ...]
@@ -246,15 +246,15 @@ class BuhinSimilarGlyphFinder(
             buhinname = splitrow[7].split("@")[0]
             b_buhins = self.get_summary(buhinname)
             if not b_buhins:
-                buhin.append(BuhinElem(((x0, y0), (x1, y1)), buhinname))
+                buhin.append(BuhinElem(buhinname, ((x0, y0), (x1, y1))))
                 continue
             x_map = coord_mapper(x0, x1)
             y_map = coord_mapper(y0, y1)
             p_map = point_mapper(x_map, y_map)
             buhin.extend(
-                BuhinElem((p_map(p1), p_map(p2)), b_name)
-                for (p1, p2), b_name in b_buhins)
-        buhin.sort(key=lambda x: x.name)
+                BuhinElem(b_name, (p_map(p1), p_map(p2)))
+                for b_name, (p1, p2) in b_buhins)
+        buhin.sort()
         return tuple(buhin)
 
     def get_hash(self, name: str) -> BuhinHash:
