@@ -10,7 +10,7 @@ import logging
 import os
 import re
 from typing import Callable, Dict, Generic, Iterator, List, Mapping, \
-    NamedTuple, Optional, Sequence, Set, Tuple, Type, TypeVar, Union, cast
+    NamedTuple, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
 from urllib.request import urlopen
 
 
@@ -185,6 +185,11 @@ def cmp2(a: Point, b: Point) -> int:
     return cmp(a[0], b[0]) * 3 + cmp(a[1], b[1])
 
 
+def parse_pointarr(values: Sequence[str]):
+    it = (float(value) for value in values)
+    return list(zip(it, it))
+
+
 henka_re = re.compile(
     r"""
         -(?:[gtv]v?|[hmis]|j[asv]?|k[pv]?|u[ks]?)?(\d{2})
@@ -217,7 +222,7 @@ def get_buhin_diflim(name: str):
 
 
 class BuhinElem(NamedTuple):
-    coords: Tuple[Tuple[float, float], Tuple[float, float]]
+    coords: Tuple[Point, Point]
     name: str
 
 
@@ -275,7 +280,12 @@ class BuhinSimilarGlyphFinder(
         return True
 
 
-KakuElem = Tuple[Union[int, Tuple[int, ...], float], ...]
+class KakuElem(NamedTuple):
+    stype: int
+    dirshape: Tuple[int, ...]
+    coords: Tuple[Point, Point]
+
+
 KakuSummary = Tuple[KakuElem, ...]
 KakuHash0 = Tuple[int, Tuple[int, ...]]
 KakuHash = Tuple[KakuHash0, ...]
@@ -288,47 +298,54 @@ def dist_from_line(
     return abs(y0 + (y1 - y0) * (x - x0) / (x1 - x0) - y)
 
 
+def is_almost_straight(points: Sequence[Point]):
+    p1 = points[0]
+    p2 = points[-1]
+    return all(dist_from_line(*p1, *p2, *p) <= 5.0 for p in points[1:-1])
+
+
+_stype_data_endpos: Dict[str, Tuple[int, int]] = {
+    "1": (1, 7),
+    "2": (2, 9),
+    "6": (2, 11),
+    "7": (2, 11),
+    "3": (3, 9),
+    "4": (3, 9),
+    "0": (0, 7),
+}
+
+
 def get_kaku_info(line_data: List[str]) -> \
-        Optional[Tuple[int, Tuple[int, int], Tuple[float, ...]]]:
+        Optional[Tuple[int, Tuple[int, int], Tuple[Point, ...]]]:
     strokeType = line_data[0]
     sttType = int(line_data[1])
     endType = int(line_data[2])
-    if strokeType == "1":
-        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
+    if strokeType not in _stype_data_endpos:
+        return None
+    if strokeType == "0" and sttType not in (97, 98, 99):
+        return None
+    stype, data_endpos = _stype_data_endpos[strokeType]
+    coords = parse_pointarr(line_data[3:data_endpos])
+
+    if stype == 1:
+        (x0, y0), (x1, y1) = coords
         if (sttType == endType == 32 and y0 > y1 and y0 - y1 >= x1 - x0) or \
                 (y0 == y1 and x0 > x1):
-            x0, y0, x1, y1 = x1, y1, x0, y0
-        return 1, (sttType if sttType != 2 else 0, endType), (x0, y0, x1, y1)
-    if strokeType == "2":
-        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
+            coords.reverse()
+        if sttType == 2:
+            sttType = 0
+    elif stype == 2:
+        x0, y0 = coords[0]
+        x2, y2 = coords[-1]
         if sttType == 32 and endType == 0 and \
                 ((y0 == y2 and x0 > x2) or y0 > y2):
-            x0, y0, x2, y2 = x2, y2, x0, y0
+            coords.reverse()
+            x0, x2 = x2, x0
         if endType == 0 and sttType in (0, 12, 22, 32) and \
-                0 != abs(y0 - y2) >= x2 - x0 and \
-                dist_from_line(x0, y0, x2, y2, x1, y1) <= 5.0:
-            return 1, (sttType, 32), (x0, y0, x2, y2)
-        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2)
-    if strokeType in ("6", "7"):
-        x0, y0, x1, y1, x2, y2, x3, y3 = [float(x) for x in line_data[3:11]]
-        if sttType == 32 and endType == 0 and \
-                ((y0 == y3 and x0 > x3) or y0 > y3):
-            x0, y0, x1, y1, x2, y2, x3, y3 = x3, y3, x2, y2, x1, y1, x0, y0
-        if endType == 0 and sttType in (0, 12, 22, 32) and \
-                0 != abs(y0 - y3) >= x3 - x0 and \
-                dist_from_line(x0, y0, x3, y3, x1, y1) <= 5.0 and \
-                dist_from_line(x0, y0, x3, y3, x2, y2) <= 5.0:
-            return 1, (sttType, 32), (x0, y0, x3, y3)
-        return 2, (sttType, endType), (x0, y0, x1, y1, x2, y2, x3, y3)
-    if strokeType in ("3", "4"):
-        x0, y0, x1, y1, x2, y2 = [float(x) for x in line_data[3:9]]
-        return 3, (sttType, endType), (x0, y0, x1, y1, x2, y2)
+                0 != abs(y0 - y2) >= x2 - x0 and is_almost_straight(coords):
+            return 1, (sttType, 32), (coords[0], coords[-1])
 
-    if strokeType == "0" and sttType in (97, 98, 99):
-        x0, y0, x1, y1 = [float(x) for x in line_data[3:7]]
-        return 0, (sttType, endType), (x0, y0, x1, y1)
-
-    return None
+    return stype, (sttType, endType), tuple(coords)
 
 
 class KakuSimilarGlyphFinder(
@@ -344,12 +361,11 @@ class KakuSimilarGlyphFinder(
                 if kaku_info is None:
                     continue
                 kaku_type, shapes, points = kaku_info
-                dir1 = cmp(points[0], points[2]) * 3 + \
-                    cmp(points[1], points[3])
-                dir2 = cmp(points[-4], points[-2]) * 3 + \
-                    cmp(points[-3], points[-1])
-                dirs = (dir1,) if len(points) == 4 else (dir1, dir2)
-                kaku_sig = (kaku_type, dirs + shapes) + points
+                dir1 = cmp2(points[0], points[1])
+                dir2 = cmp2(points[-2], points[-1])
+                dirs = (dir1,) if len(points) == 2 else (dir1, dir2)
+                kaku_sig = KakuElem(
+                    kaku_type, dirs + shapes, (points[0], points[-1]))
                 k.append(kaku_sig)
                 continue
 
@@ -369,34 +385,30 @@ class KakuSimilarGlyphFinder(
                     spx = spy = 0.0  # 中心点モード
                 stretch_x = stretch_mapper(
                     dpx, spx,
-                    [x for b_kaku in b_kakus for x in cast(
-                        Tuple[float, ...], b_kaku[2::2])]
+                    [x for b_kaku in b_kakus for (x, y) in b_kaku.coords]
                 )
                 stretch_y = stretch_mapper(
                     dpy, spy,
-                    [y for b_kaku in b_kakus for y in cast(
-                        Tuple[float, ...], b_kaku[3::2])]
+                    [y for b_kaku in b_kakus for (x, y) in b_kaku.coords]
                 )
                 x_map = compose(x_map, stretch_x)
                 y_map = compose(y_map, stretch_y)
-            for b_kaku in b_kakus:
-                points = list(cast(Tuple[float], b_kaku[2:]))
-                points[0::2] = [x_map(x) for x in points[0::2]]
-                points[1::2] = [y_map(y) for y in points[1::2]]
-                k.append(b_kaku[0:2] + tuple(points))
+            p_map = point_mapper(x_map, y_map)
+            for b_stype, b_dirshape, (b_stt, b_end) in b_kakus:
+                k.append(KakuElem(
+                    b_stype, b_dirshape, (p_map(b_stt), p_map(b_end))))
         k.sort()
         return tuple(k)
 
     def get_hash(self, name: str) -> KakuHash:
-        return tuple(cast(KakuHash0, k[0:2]) for k in self.get_summary(name))
+        return tuple(k[0:2] for k in self.get_summary(name))
 
     @classmethod
     def is_similar_summary(
             cls, summary1: KakuSummary, summary2: KakuSummary) -> bool:
-        for (K1, K2) in zip(summary1, summary2):
-            if any(abs(p1 - p2) > 20.0 for (p1, p2) in zip(
-                    cast(Tuple[float, ...], K1[2:4] + K1[-2:]),
-                    cast(Tuple[float, ...], K2[2:4] + K2[-2:]))):
+        for k1, k2 in zip(summary1, summary2):
+            if any(abs(x1 - x2) > 20.0 or abs(y1 - y2) > 20.0
+                    for (x1, y1), (x2, y2) in zip(k1.coords, k2.coords)):
                 return False
         return True
 
