@@ -394,9 +394,9 @@ class KakuSimilarGlyphFinder(
                 x_map = compose(x_map, stretch_x)
                 y_map = compose(y_map, stretch_y)
             p_map = point_mapper(x_map, y_map)
-            for b_stype, b_dirshape, (b_stt, b_end) in b_kakus:
-                k.append(KakuElem(
-                    b_stype, b_dirshape, (p_map(b_stt), p_map(b_end))))
+            k.extend(
+                KakuElem(b_stype, b_dirshape, (p_map(b_stt), p_map(b_end)))
+                for b_stype, b_dirshape, (b_stt, b_end) in b_kakus)
         k.sort()
         return tuple(k)
 
