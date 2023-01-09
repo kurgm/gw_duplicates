@@ -5,6 +5,7 @@
   "scripts": {
     "build": "parcel build src/index.pug --public-url ./",
     "watch": "parcel src/index.pug",
+    "check": "tsc --noEmit",
     "lint": "eslint --ext .ts,.tsx src/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
