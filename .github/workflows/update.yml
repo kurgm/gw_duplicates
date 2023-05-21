@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: 'pypy3.8'
 
       - run: bash getdump.sh
       - run: python listup_duplicates.py -o duplicates.json dump_newest_only.txt
