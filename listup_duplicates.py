@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import re
-from typing import Generic, NamedTuple, Optional, TypeVar, Union
+from typing import Generic, NamedTuple, TypeVar
 from urllib.request import urlopen
 
 
@@ -26,13 +26,13 @@ class CircularCallError(ValueError):
 T = TypeVar("T")
 U = TypeVar("U")
 R = TypeVar("R")
-Either = Union[tuple[T, None], tuple[None, U]]
+Either = tuple[T, None] | tuple[None, U]
 
 
 class Glyph(NamedTuple):
 
     name: str
-    rel: Optional[str]
+    rel: str | None
     data: Sequence[str]
     xorMaskType: int = 0
 
@@ -318,7 +318,7 @@ _stype_data_endpos: dict[str, tuple[int, int]] = {
 
 
 def get_kaku_info(line_data: list[str]) -> \
-        Optional[tuple[int, tuple[int, int], tuple[Point, ...]]]:
+        tuple[int, tuple[int, int], tuple[Point, ...]] | None:
     strokeType = line_data[0]
     sttType = int(line_data[1])
     endType = int(line_data[2])
@@ -470,7 +470,7 @@ def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
     visited_pairs: set[tuple[str, str]] = set()
 
     for key, sgfindercls in sgfinders:
-        entries: list[tuple[str, str, Optional[str], Optional[str]]] = []
+        entries: list[tuple[str, str, str | None, str | None]] = []
         finder = sgfindercls(dump)
         for g1, g2 in finder.find_similar_glyph_pairs():
             name_pair = (g1.name, g2.name)
