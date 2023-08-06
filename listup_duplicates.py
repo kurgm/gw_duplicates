@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 import argparse
 import collections
+from collections.abc import Callable, Iterator, Mapping, Sequence
 import copy
 import itertools
 import json
 import logging
 import os
 import re
-from typing import Callable, Dict, Generic, Iterator, List, Mapping, \
-    NamedTuple, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
+from typing import Generic, NamedTuple, Optional, TypeVar, Union
 from urllib.request import urlopen
 
 
@@ -24,7 +26,7 @@ class CircularCallError(ValueError):
 T = TypeVar("T")
 U = TypeVar("U")
 R = TypeVar("R")
-Either = Union[Tuple[T, None], Tuple[None, U]]
+Either = Union[tuple[T, None], tuple[None, U]]
 
 
 class Glyph(NamedTuple):
@@ -39,7 +41,7 @@ class Glyph(NamedTuple):
             self.data[0].startswith("99:0:0:0:0:200:200:")
 
 
-class Dump(Dict[str, Glyph]):
+class Dump(dict[str, Glyph]):
     timestamp: float
 
     def __init__(self, timestamp: float, *args, **kwargs):
@@ -48,8 +50,8 @@ class Dump(Dict[str, Glyph]):
 
 
 class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
-    __getsummary_stack: List[str]
-    __summary_cache: Dict[str, Either[T, Exception]]
+    __getsummary_stack: list[str]
+    __summary_cache: dict[str, Either[T, Exception]]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -108,8 +110,8 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
     def is_similar_summary(cls, summary1: T, summay2: T) -> bool:
         raise NotImplementedError
 
-    def find_similar_glyph_pairs(self) -> Iterator[Tuple[Glyph, Glyph]]:
-        hash_dict: Mapping[U, List[Glyph]] = collections.defaultdict(list)
+    def find_similar_glyph_pairs(self) -> Iterator[tuple[Glyph, Glyph]]:
+        hash_dict: Mapping[U, list[Glyph]] = collections.defaultdict(list)
         for name, glyph in self.dump.items():
             if "_" in name or glyph.isAlias():
                 continue
@@ -154,7 +156,7 @@ def stretch(
     return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
 
 
-def stretch_mapper(dp: float, sp: float, coords: List[float] = []) -> \
+def stretch_mapper(dp: float, sp: float, coords: list[float] = []) -> \
         FloatMapper:
     if coords:
         pmin = min(coords)
@@ -169,7 +171,7 @@ def compose(f: Callable[[U], R], g: Callable[[T], U]) -> Callable[[T], R]:
     return lambda *args: f(g(*args))
 
 
-Point = Tuple[float, float]
+Point = tuple[float, float]
 PointMapper = Callable[[Point], Point]
 
 
@@ -223,11 +225,11 @@ def get_buhin_diflim(name: str):
 
 class BuhinElem(NamedTuple):
     name: str
-    coords: Tuple[Point, Point]
+    coords: tuple[Point, Point]
 
 
-BuhinSummary = Tuple[BuhinElem, ...]
-BuhinHash = Tuple[str, ...]
+BuhinSummary = tuple[BuhinElem, ...]
+BuhinHash = tuple[str, ...]
 
 
 class BuhinSimilarGlyphFinder(
@@ -235,7 +237,7 @@ class BuhinSimilarGlyphFinder(
         SimilarGlyphFinderBase[BuhinSummary, BuhinHash]):
 
     def _get_summary_impl(self, name: str) -> BuhinSummary:
-        buhin: List[BuhinElem] = []
+        buhin: list[BuhinElem] = []
         for row in self.dump[name].data:
             splitrow = row.split(":")
             if splitrow[0] == "0" and splitrow[1] not in ("97", "98", "99"):
@@ -282,13 +284,13 @@ class BuhinSimilarGlyphFinder(
 
 class KakuElem(NamedTuple):
     stype: int
-    dirshape: Tuple[int, ...]
-    coords: Tuple[Point, Point]
+    dirshape: tuple[int, ...]
+    coords: tuple[Point, Point]
 
 
-KakuSummary = Tuple[KakuElem, ...]
-KakuHash0 = Tuple[int, Tuple[int, ...]]
-KakuHash = Tuple[KakuHash0, ...]
+KakuSummary = tuple[KakuElem, ...]
+KakuHash0 = tuple[int, tuple[int, ...]]
+KakuHash = tuple[KakuHash0, ...]
 
 
 def dist_from_line(
@@ -304,7 +306,7 @@ def is_almost_straight(points: Sequence[Point]):
     return all(dist_from_line(*p1, *p2, *p) <= 5.0 for p in points[1:-1])
 
 
-_stype_data_endpos: Dict[str, Tuple[int, int]] = {
+_stype_data_endpos: dict[str, tuple[int, int]] = {
     "1": (1, 7),
     "2": (2, 9),
     "6": (2, 11),
@@ -315,8 +317,8 @@ _stype_data_endpos: Dict[str, Tuple[int, int]] = {
 }
 
 
-def get_kaku_info(line_data: List[str]) -> \
-        Optional[Tuple[int, Tuple[int, int], Tuple[Point, ...]]]:
+def get_kaku_info(line_data: list[str]) -> \
+        Optional[tuple[int, tuple[int, int], tuple[Point, ...]]]:
     strokeType = line_data[0]
     sttType = int(line_data[1])
     endType = int(line_data[2])
@@ -353,7 +355,7 @@ class KakuSimilarGlyphFinder(
         SimilarGlyphFinderBase[KakuSummary, KakuHash]):
 
     def _get_summary_impl(self, name: str) -> KakuSummary:
-        k: List[KakuElem] = []
+        k: list[KakuElem] = []
         for row in self.dump[name].data:
             line_data = row.split(":")
             if line_data[0] != "99":
@@ -419,7 +421,7 @@ def get_xor_mask_type_map():
 
     neg_src = re.split(r"</?textarea(?: [^>]*)?>", neg_data)[1]
     neg_masktype = 0
-    result: Dict[str, int] = {}
+    result: dict[str, int] = {}
     for m in re.finditer(
             r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
             neg_src, re.M):
@@ -457,7 +459,7 @@ DEFAULT_OUT_PATH = "duplicates.json"
 
 
 def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
-    sgfinders: List[Tuple[str, Type[SimilarGlyphFinderBase]]] = [
+    sgfinders: list[tuple[str, type[SimilarGlyphFinderBase]]] = [
         ("buhin", BuhinSimilarGlyphFinder),
         ("kaku", KakuSimilarGlyphFinder),
     ]
@@ -465,10 +467,10 @@ def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
     dump = getDump(dump_path)
 
     result = {}
-    visited_pairs: Set[Tuple[str, str]] = set()
+    visited_pairs: set[tuple[str, str]] = set()
 
     for key, sgfindercls in sgfinders:
-        entries: List[Tuple[str, str, Optional[str], Optional[str]]] = []
+        entries: list[tuple[str, str, Optional[str], Optional[str]]] = []
         finder = sgfindercls(dump)
         for g1, g2 in finder.find_similar_glyph_pairs():
             name_pair = (g1.name, g2.name)
