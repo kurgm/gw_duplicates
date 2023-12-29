@@ -1,5 +1,5 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import { IDupEntry, Table } from "./table";
 
@@ -125,4 +125,4 @@ const App: React.FC<Record<string, never>> = () => {
   );
 };
 
-ReactDOM.render(<App />, document.getElementById("app"));
+createRoot(document.getElementById("app")!).render(<App />);
