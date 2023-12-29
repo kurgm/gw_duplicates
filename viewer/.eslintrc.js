@@ -6,7 +6,7 @@ module.exports = {
     },
     parser: "@typescript-eslint/parser",
     parserOptions: {
-        project: "tsconfig.json",
+        project: true,
         sourceType: "module",
         tsconfigRootDir: __dirname,
     },
@@ -16,8 +16,8 @@ module.exports = {
     extends: [
         "eslint:recommended",
         "plugin:@typescript-eslint/eslint-recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "plugin:@typescript-eslint/recommended-type-checked",
+        "plugin:@typescript-eslint/stylistic-type-checked",
         "plugin:react/recommended",
         "plugin:react-hooks/recommended",
     ],
@@ -28,7 +28,6 @@ module.exports = {
             2,
         ],
         "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-non-null-assertion": "off",
     },
     settings: {
         react: {

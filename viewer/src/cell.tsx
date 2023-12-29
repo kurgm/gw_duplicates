@@ -10,7 +10,7 @@ const uxxxx2char = (uxxxx: string) => {
   return String.fromCharCode(cp1, cp2);
 };
 
-const qs = (obj: { [key: string]: string }) => {
+const qs = (obj: Record<string, string>) => {
   return Object.keys(obj).map((key) => (
     encodeURIComponent(key) + "=" + encodeURIComponent(obj[key])
   )).join("&");
@@ -40,7 +40,7 @@ export const Cell: React.FC<CellProps> = (props: CellProps) => {
       <a
         href={url + "?" + qs({
           action: "preview",
-          related: props.related || "u3013",
+          related: props.related ?? "u3013",
           summary: props.oppositeName,
           textbox: `[[${props.oppositeName}]]`,
         })}
