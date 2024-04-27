@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { IDupEntry, Table } from "./table";
 
-const jsonUrl = "https://gist.githubusercontent.com/kurgm/cc8ec3b2d9a1cc63b39c8663328edfc6/raw/duplicates.json";
+const jsonUrl = process.env.RESULT_JSON_URL!;
 
 const text2uxxx = (str: string) => {
   const cp = [];

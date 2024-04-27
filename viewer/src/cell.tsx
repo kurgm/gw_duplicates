@@ -24,12 +24,12 @@ export interface CellProps {
 }
 
 export const Cell: React.FC<CellProps> = (props: CellProps) => {
-  const url = `https://glyphwiki.org/wiki/${props.name}`;
+  const url = process.env.GLYPH_LINK_BASE! + props.name;
   return (
     <div>
       <a href={url} target="_new">
         <img
-          src={`https://glyphwiki.org/glyph/${props.name}.svg`}
+          src={process.env.GLYPH_IMAGE_BASE! + `${props.name}.svg`}
           alt={props.name}
           className="thumb"
         />
