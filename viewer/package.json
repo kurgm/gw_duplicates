@@ -7,12 +7,16 @@
     "watch": "parcel src/index.pug",
     "check": "tsc --noEmit",
     "lint": "eslint --ext .ts,.tsx src/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "e2e": "playwright test",
+    "e2e-server": "node e2e/server.js"
   },
   "author": "Kurogoma",
   "license": "MIT",
   "devDependencies": {
+    "@fastify/static": "^7.0.3",
     "@parcel/transformer-pug": "^2.2.1",
+    "@playwright/test": "^1.43.1",
+    "@types/node": "^20.12.7",
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
     "@types/react-virtualized": "^9.21.29",
@@ -21,6 +25,7 @@
     "eslint": "^8.7.0",
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
+    "fastify": "^4.26.2",
     "parcel": "^2.2.1",
     "typescript": "^5.1.6"
   },

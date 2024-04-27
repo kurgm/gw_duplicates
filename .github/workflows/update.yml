@@ -10,6 +10,7 @@ on:
     paths-ignore:
       - viewer/**
       - .github/workflows/update-viewer.yml
+      - .github/workflows/playwright.yml
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
