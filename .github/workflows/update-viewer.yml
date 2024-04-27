@@ -3,10 +3,14 @@ name: Update viewer
 on:
   push:
     branches: [ master ]
-    paths: [ viewer/** ]
+    paths:
+      - viewer/**
+      - .github/workflows/update-viewer.yml
 
   pull_request:
-    paths: [ viewer/** ]
+    paths:
+      - viewer/**
+      - .github/workflows/update-viewer.yml
 
 jobs:
   build-viewer:
