@@ -17,7 +17,7 @@
     "@parcel/transformer-pug": "^2.2.1",
     "@playwright/test": "^1.43.1",
     "@types/node": "^20.12.7",
-    "@types/react": "^18.2.46",
+    "@types/react": "^18.3.1",
     "@types/react-dom": "^18.2.18",
     "@types/react-virtualized": "^9.21.29",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
@@ -30,7 +30,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "react": "^18.2.0",
+    "react": "^18.3.1",
     "react-dom": "^18.2.0",
     "react-virtualized": "^9.22.5"
   }
