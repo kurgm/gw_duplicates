@@ -5,6 +5,9 @@ on:
     branches: [ master ]
     paths: [ viewer/** ]
 
+  pull_request:
+    paths: [ viewer/** ]
+
 jobs:
   update-viewer:
     runs-on: ubuntu-latest
