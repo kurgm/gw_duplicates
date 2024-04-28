@@ -95,10 +95,10 @@ const App: React.FC<Record<string, never>> = () => {
       if (query.test(entry[1])) {
         return true;
       }
-      if (entry[2] && query.test(entry[2]!)) {
+      if (entry[2] && query.test(entry[2])) {
         return true;
       }
-      if (entry[3] && query.test(entry[3]!)) {
+      if (entry[3] && query.test(entry[3])) {
         return true;
       }
       return false;
