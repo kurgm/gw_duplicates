@@ -14,7 +14,7 @@
   "license": "MIT",
   "devDependencies": {
     "@fastify/static": "^7.0.3",
-    "@parcel/transformer-pug": "^2.2.1",
+    "@parcel/transformer-pug": "^2.12.0",
     "@playwright/test": "^1.43.1",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.1",
