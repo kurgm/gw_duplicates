@@ -6,7 +6,7 @@ module.exports = {
     },
     parser: "@typescript-eslint/parser",
     parserOptions: {
-        project: true,
+        projectService: true,
         sourceType: "module",
         tsconfigRootDir: __dirname,
     },
@@ -15,7 +15,6 @@ module.exports = {
     ],
     extends: [
         "eslint:recommended",
-        "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended-type-checked",
         "plugin:@typescript-eslint/stylistic-type-checked",
         "plugin:react/recommended",
@@ -23,10 +22,6 @@ module.exports = {
     ],
     rules: {
         "@typescript-eslint/explicit-function-return-type": "off",
-        "@typescript-eslint/indent": [
-            "error",
-            2,
-        ],
         "@typescript-eslint/no-explicit-any": "off",
     },
     settings: {
