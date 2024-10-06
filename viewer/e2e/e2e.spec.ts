@@ -23,7 +23,7 @@ test("has glyph images", async ({ page }) => {
   const popup = await popupPromise;
   await popup.waitForLoadState();
   await expect(popup).toHaveTitle("u4e00");
-  popup.close();
+  await popup.close();
 });
 
 test("has text link", async ({ page }) => {
@@ -40,7 +40,7 @@ test("has text link", async ({ page }) => {
   const popup = await popupPromise;
   await popup.waitForLoadState();
   await expect(popup).toHaveTitle("u4e00");
-  popup.close();
+  await popup.close();
 });
 
 test("has search box", async ({ page }) => {
@@ -85,7 +85,7 @@ test("has edit links", async ({ page }) => {
     await expect(popup).toHaveTitle("Editing u4e00");
     await expect(popup.getByLabel("related")).toHaveValue("u4e00");
     await expect(popup.getByLabel("textbox")).toHaveValue("[[u4e01]]");
-    popup.close();
+    await popup.close();
   }
 
   {
@@ -95,7 +95,7 @@ test("has edit links", async ({ page }) => {
     await popup.waitForLoadState();
     await expect(popup).toHaveTitle("Editing u4e00");
     await expect(popup.getByLabel("textbox")).toHaveValue("0:0:0:0");
-    popup.close();
+    await popup.close();
   }
 
   await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("aj1-00001");
@@ -108,7 +108,7 @@ test("has edit links", async ({ page }) => {
     await expect(popup).toHaveTitle("Editing aj1-00001");
     await expect(popup.getByLabel("related")).toHaveValue("u3013");
     await expect(popup.getByLabel("textbox")).toHaveValue("[[aj1-00000]]");
-    popup.close();
+    await popup.close();
   }
 
   {
@@ -118,6 +118,6 @@ test("has edit links", async ({ page }) => {
     await popup.waitForLoadState();
     await expect(popup).toHaveTitle("Editing aj1-00001");
     await expect(popup.getByLabel("textbox")).toHaveValue("0:0:0:0");
-    popup.close();
+    await popup.close();
   }
 });
