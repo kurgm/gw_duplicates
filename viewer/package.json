@@ -15,7 +15,7 @@
   "devDependencies": {
     "@fastify/static": "^8.0.2",
     "@parcel/transformer-pug": "^2.12.0",
-    "@playwright/test": "^1.48.1",
+    "@playwright/test": "^1.48.2",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
