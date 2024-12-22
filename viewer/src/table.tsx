@@ -14,10 +14,16 @@ export interface TableProps {
 export const Table: React.FC<TableProps> = (props: TableProps) => {
   const parentRef = React.useRef<HTMLDivElement>(null);
 
+  const getItemKey = React.useCallback(
+    (index: number) => props.data[index][4],
+    [props.data]
+  );
+
   const virtualizer = useWindowVirtualizer({
     count: props.data.length,
     estimateSize: () => 56,
     scrollMargin: parentRef.current?.offsetTop ?? 0,
+    getItemKey,
     overscan: 10,
   });
 
@@ -34,7 +40,7 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
         const entry = props.data[item.index];
         return (
           <div
-            key={entry[4]}
+            key={item.key}
             data-index={item.index}
             ref={virtualizer.measureElement}
             style={{
