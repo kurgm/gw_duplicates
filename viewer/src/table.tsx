@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { List, ListRowRenderer, WindowScroller } from "react-virtualized";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 import { Cell } from "./cell";
 
@@ -12,39 +12,60 @@ export interface TableProps {
 }
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
-  const rowRenderer: ListRowRenderer = React.useCallback(({ index, key, style }) => {
-    const entry = props.data[index];
-    return (
-      <div key={key} style={style} className={`table-row ${index % 2 === 1 ? "" : "gray"}`}>
-        <div>{entry[4] + 1}.&nbsp;</div>
-        <Cell
-          name={entry[0]} related={entry[2]}
-          oppositeName={entry[1]} oppositeRelated={entry[3]}
-        />
-        <Cell
-          name={entry[1]} related={entry[3]}
-          oppositeName={entry[0]} oppositeRelated={entry[2]}
-        />
-      </div>
-    );
-  }, [props.data]);
+  const parentRef = React.useRef<HTMLDivElement>(null);
+
+  const getItemKey = React.useCallback(
+    (index: number) => props.data[index][4],
+    [props.data]
+  );
+
+  const virtualizer = useWindowVirtualizer({
+    count: props.data.length,
+    estimateSize: () => 56,
+    scrollMargin: parentRef.current?.offsetTop ?? 0,
+    getItemKey,
+    overscan: 10,
+  });
 
   return (
-    <WindowScroller>
-      {({ height, width, isScrolling, onChildScroll, scrollTop }) => (
-        <List
-          autoHeight
-          height={height}
-          isScrolling={isScrolling}
-          onScroll={onChildScroll}
-          rowCount={props.data.length}
-          rowHeight={56}
-          rowRenderer={rowRenderer}
-          scrollTop={scrollTop}
-          width={width}
-        />
-      )}
-    </WindowScroller>
+    <div
+      ref={parentRef}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: virtualizer.getTotalSize(),
+      }}
+    >
+      {virtualizer.getVirtualItems().map((item) => {
+        const entry = props.data[item.index];
+        return (
+          <div
+            key={item.key}
+            data-index={item.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${
+                item.start - virtualizer.options.scrollMargin
+              }px)`,
+            }}
+            className={`table-row ${item.index % 2 === 1 ? "" : "gray"}`}
+          >
+            <div>{entry[4] + 1}.&nbsp;</div>
+            <Cell
+              name={entry[0]} related={entry[2]}
+              oppositeName={entry[1]} oppositeRelated={entry[3]}
+            />
+            <Cell
+              name={entry[1]} related={entry[3]}
+              oppositeName={entry[0]} oppositeRelated={entry[2]}
+            />
+          </div>
+        );
+      })}
+    </div>
   );
 };
-

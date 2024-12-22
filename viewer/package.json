@@ -19,7 +19,6 @@
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/react-virtualized": "^9.22.0",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
     "eslint": "^8.57.0",
@@ -30,8 +29,8 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.11.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-virtualized": "^9.22.5"
+    "react-dom": "^18.3.1"
   }
 }
