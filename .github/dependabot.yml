@@ -16,9 +16,10 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-      tseslint:
+      eslint:
         patterns:
-          - "@typescript-eslint/*"
+          - "eslint"
+          - "@eslint/*"
       parcel:
         patterns:
           - "parcel"
