@@ -104,7 +104,7 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def is_similar_summary(cls, summary1: T, summay2: T) -> bool:
+    def is_similar_summary(cls, summary1: T, summary2: T) -> bool:
         raise NotImplementedError
 
     def find_similar_glyph_pairs(self) -> Iterator[tuple[Glyph, Glyph]]:
