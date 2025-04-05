@@ -1,0 +1,11 @@
+[project]
+name = "gw_duplicates"
+version = "1.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.ruff]
+include = ["pyproject.toml", "*.py"]
+
+[tool.ruff.lint]
+extend-select = ["B", "I", "LOG", "FURB", "PTH", "UP"]
