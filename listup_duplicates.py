@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
 import argparse
 import collections
-from collections.abc import Callable, Iterator, Mapping, Sequence
 import copy
 import itertools
 import json
 import logging
 import os
 import re
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Generic, NamedTuple, TypeVar
 from urllib.request import urlopen
-
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -192,7 +191,7 @@ henka_re = re.compile(
         (?:-(?:var|itaiji)-\d{3})?
         $
     """,
-    re.X,
+    re.VERBOSE,
 )
 
 
@@ -424,7 +423,9 @@ def get_xor_mask_type_map():
     neg_masktype = 0
     result: dict[str, int] = {}
     for m in re.finditer(
-        r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$", neg_src, re.M
+        r"\[\[(?:[^]]+\s)?([0-9a-z_-]+)(?:@\d+)?\]\]|^\*([^\*].*)$",
+        neg_src,
+        re.MULTILINE,
     ):
         gn = m.group(1)
         if gn:
@@ -438,7 +439,7 @@ def getDump(path: str):
     masktype_map = get_xor_mask_type_map()
     timestamp = os.path.getmtime(path)
     dump = Dump(timestamp)
-    with open(path, "r", encoding="utf-8") as dumpfile:
+    with open(path, encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
 
