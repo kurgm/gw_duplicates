@@ -8,11 +8,11 @@ import copy
 import itertools
 import json
 import logging
-import os
 import re
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from typing import Generic, NamedTuple, TypeVar
+from pathlib import Path
+from typing import Generic, NamedTuple, TextIO, TypeVar
 from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
@@ -436,11 +436,11 @@ def get_xor_mask_type_map():
     return result
 
 
-def getDump(path: str):
+def getDump(path: Path) -> Dump:
     masktype_map = get_xor_mask_type_map()
-    timestamp = os.path.getmtime(path)
+    timestamp = path.stat().st_mtime
     dump = Dump(timestamp)
-    with open(path, encoding="utf-8") as dumpfile:
+    with path.open(encoding="utf-8") as dumpfile:
         dumpfile.readline()  # header
         dumpfile.readline()  # ------
 
@@ -456,11 +456,7 @@ def getDump(path: str):
     return dump
 
 
-DEFAULT_DUMP_PATH = "dump_newest_only.txt"
-DEFAULT_OUT_PATH = "duplicates.json"
-
-
-def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
+def main(dump_path: Path, outfile: TextIO) -> None:
     sgfinders: list[tuple[str, type[SimilarGlyphFinderBase]]] = [
         ("buhin", BuhinSimilarGlyphFinder),
         ("kaku", KakuSimilarGlyphFinder),
@@ -485,13 +481,18 @@ def main(dump_path: str = DEFAULT_DUMP_PATH, out_path: str = DEFAULT_OUT_PATH):
 
     result["timestamp"] = dump.timestamp
 
-    with open(out_path, "w") as outfile:
+    with outfile:
         json.dump(result, outfile, separators=(",", ":"))
 
 
 if __name__ == "__main__":
+    DEFAULT_DUMP_PATH = "dump_newest_only.txt"
+    DEFAULT_OUT_PATH = "duplicates.json"
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out_path", "-o", default=DEFAULT_OUT_PATH)
-    parser.add_argument("dump_path", nargs="?", default=DEFAULT_DUMP_PATH)
+    parser.add_argument(
+        "--out_path", "-o", default=DEFAULT_OUT_PATH, type=argparse.FileType("w")
+    )
+    parser.add_argument("dump_path", nargs="?", default=DEFAULT_DUMP_PATH, type=Path)
     args = parser.parse_args()
     main(args.dump_path, args.out_path)

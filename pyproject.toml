@@ -8,4 +8,4 @@ dependencies = []
 include = ["pyproject.toml", "*.py"]
 
 [tool.ruff.lint]
-extend-select = ["I", "LOG", "FURB", "UP"]
+extend-select = ["I", "LOG", "FURB", "PTH", "UP"]
