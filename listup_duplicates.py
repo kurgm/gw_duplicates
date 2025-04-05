@@ -15,7 +15,8 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Generic, NamedTuple, TypeVar
 from urllib.request import urlopen
 
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class CircularCallError(ValueError):
@@ -77,7 +78,7 @@ class GlyphSummaryManagerMixin(Generic[T], metaclass=ABCMeta):
             result = self._get_summary_impl(name)
         except Exception as exc:
             self.__summary_cache[name] = (None, exc)
-            logging.error("An error occurred in %r.get_summary(%r)", self, name)
+            logger.error("An error occurred in %r.get_summary(%r)", self, name)
             raise
         else:
             self.__summary_cache[name] = (result, None)
@@ -116,7 +117,7 @@ class SimilarGlyphFinderBase(Generic[T, U], metaclass=ABCMeta):
                 if ghash:
                     hash_dict[ghash].append(glyph)
             except Exception:
-                logging.exception("Error in %r", name)
+                logger.exception("Error in %r", name)
 
         for glyphs in hash_dict.values():
             for g1, g2 in itertools.combinations(glyphs, 2):
