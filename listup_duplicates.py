@@ -151,7 +151,7 @@ def stretch(dp: float, sp: float, p: float, pmin: float = 12.0, pmax: float = 18
     return ((p - p1) / (p2 - p1)) * (p4 - p3) + p3
 
 
-def stretch_mapper(dp: float, sp: float, coords: list[float] = []) -> FloatMapper:
+def stretch_mapper(dp: float, sp: float, coords: Sequence[float] = []) -> FloatMapper:
     if coords:
         pmin = min(coords)
         pmax = max(coords)
@@ -183,7 +183,7 @@ def cmp2(a: Point, b: Point) -> int:
 
 def parse_pointarr(values: Sequence[str]):
     it = (float(value) for value in values)
-    return list(zip(it, it))
+    return list(zip(it, it, strict=True))
 
 
 henka_re = re.compile(
@@ -259,14 +259,14 @@ class BuhinSimilarGlyphFinder(
 
     @classmethod
     def is_similar_summary(cls, summary1: BuhinSummary, summary2: BuhinSummary) -> bool:
-        for b1, b2 in zip(summary1, summary2):
+        for b1, b2 in zip(summary1, summary2, strict=True):
             if cmp2(*b1.coords) != cmp2(*b2.coords):
                 return False
             diflim = get_buhin_diflim(b1.name)
             if all(
                 abs(x1 - x2) <= limx and abs(y1 - y2) <= limy
                 for (x1, y1), (x2, y2), (limx, limy) in zip(
-                    b1.coords, b2.coords, diflim
+                    b1.coords, b2.coords, diflim, strict=True
                 )
             ):
                 continue
@@ -407,10 +407,10 @@ class KakuSimilarGlyphFinder(
 
     @classmethod
     def is_similar_summary(cls, summary1: KakuSummary, summary2: KakuSummary) -> bool:
-        for k1, k2 in zip(summary1, summary2):
+        for k1, k2 in zip(summary1, summary2, strict=True):
             if any(
                 abs(x1 - x2) > 20.0 or abs(y1 - y2) > 20.0
-                for (x1, y1), (x2, y2) in zip(k1.coords, k2.coords)
+                for (x1, y1), (x2, y2) in zip(k1.coords, k2.coords, strict=True)
             ):
                 return False
         return True
