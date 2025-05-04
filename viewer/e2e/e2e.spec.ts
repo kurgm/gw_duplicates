@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-const TOTAL_COUNT = 8;
+const TOTAL_COUNT = 9;
 const TOTAL_TEXT = `の dump より生成（全 ${TOTAL_COUNT} 件）`;
 const LOADING_TEXT = "準備中...";
 const PLACEHOLDER_TEXT = "検索（グリフ名または漢字）";
@@ -60,7 +60,7 @@ test("has search box", async ({ page }) => {
   await expect(page.getByText("u4e00")).not.toBeVisible();
 
   await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("01$");
-  await expect(page.getByText(filteredText(6))).toBeVisible();
+  await expect(page.getByText(filteredText(7))).toBeVisible();
 
   await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("A");
   await expect(page.getByText(filteredText(0))).toBeVisible();
@@ -68,6 +68,12 @@ test("has search box", async ({ page }) => {
 
   await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("(");
   await expect(page.locator("input:invalid")).toBeVisible();
+
+  await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("\u4e00");
+  await expect(page.getByText(filteredText(3))).toBeVisible();
+
+  await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("\u{20000}");
+  await expect(page.getByText(filteredText(1))).toBeVisible();
 });
 
 test("has edit links", async ({ page }) => {

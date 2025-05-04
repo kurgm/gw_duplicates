@@ -6,19 +6,12 @@ import { IDupEntry, Table } from "./table";
 const jsonUrl = process.env.RESULT_JSON_URL!;
 
 const text2uxxx = (str: string) => {
-  const cp = [];
-  for (let i = 0; i < str.length; i++) {
-    const x = str.charCodeAt(i);
-    if (0xD800 <= x && x <= 0xDBFF) {
-      const y = str.charCodeAt(++i);
-      if (!isNaN(y)) {
-        cp.push(0x10000 + (((x & 0x3FF) << 10) | (y & 0x3FF)));
-        continue;
-      }
-    }
-    cp.push(x);
-  }
-  return cp.map((c) => "u" + ("000" + c.toString(16)).slice(-4)).join("-");
+  return [...str]
+    .map((c) => {
+      const code = c.codePointAt(0)!;
+      return `u${code.toString(16).padStart(4, "0")}`;
+    })
+    .join("-");
 };
 
 const App: React.FC<Record<string, never>> = () => {
