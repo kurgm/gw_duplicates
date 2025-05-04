@@ -68,6 +68,9 @@ test("has search box", async ({ page }) => {
 
   await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("(");
   await expect(page.locator("input:invalid")).toBeVisible();
+
+  await page.getByPlaceholder(PLACEHOLDER_TEXT).fill("\u4e00");
+  await expect(page.getByText(filteredText(3))).toBeVisible();
 });
 
 test("has edit links", async ({ page }) => {
