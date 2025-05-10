@@ -30,7 +30,7 @@
     "typescript-eslint": "^8.32.0"
   },
   "dependencies": {
-    "@tanstack/react-virtual": "^3.13.6",
+    "@tanstack/react-virtual": "^3.13.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }
