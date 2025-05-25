@@ -1,7 +1,6 @@
 gw_duplicates
 =============
 
-[![Update](https://github.com/kurgm/gw_duplicates/actions/workflows/update.yml/badge.svg)](https://github.com/kurgm/gw_duplicates/actions/workflows/update.yml)
 [![Update viewer](https://github.com/kurgm/gw_duplicates/actions/workflows/update-viewer.yml/badge.svg)](https://github.com/kurgm/gw_duplicates/actions/workflows/update-viewer.yml)
 
 GlyphWiki 上のグリフで重複するものを探す - https://kurgm.github.io/gw_duplicates/
