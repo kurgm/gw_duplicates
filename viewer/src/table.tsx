@@ -13,6 +13,11 @@ export interface TableProps {
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
   const parentRef = React.useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = React.useState(0);
+  React.useLayoutEffect(() => {
+    if (!parentRef.current) return;
+    setScrollMargin(parentRef.current.offsetTop);
+  }, []);
 
   const getItemKey = React.useCallback(
     (index: number) => props.data[index][4],
@@ -22,7 +27,7 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
   const virtualizer = useWindowVirtualizer({
     count: props.data.length,
     estimateSize: () => 56,
-    scrollMargin: parentRef.current?.offsetTop ?? 0,
+    scrollMargin,
     getItemKey,
     overscan: 10,
   });
