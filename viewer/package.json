@@ -17,7 +17,7 @@
     "@fastify/static": "^9.0.0",
     "@parcel/transformer-pug": "^2.16.4",
     "@playwright/test": "^1.58.2",
-    "@types/node": "^24.10.12",
+    "@types/node": "^24.10.13",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
